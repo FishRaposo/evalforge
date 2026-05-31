@@ -1,0 +1,79 @@
+name: "Citation Quality Evaluation"
+description: "Tests for proper source citation and reference behavior"
+version: "1.0"
+
+test_cases:
+  - id: "cite-001"
+    name: "Must cite climate report"
+    type: must_cite
+    input: "What does the latest research say about global temperature changes?"
+    expected:
+      sources:
+        - "IPCC AR6 Report"
+        - "NASA Climate Data"
+    tags: [citation, climate]
+
+  - id: "cite-002"
+    name: "Must cite medical source"
+    type: must_cite
+    input: "What are the efficacy rates of the COVID-19 vaccines?"
+    expected:
+      sources:
+        - "CDC"
+        - "WHO"
+    tags: [citation, medical]
+
+  - id: "cite-003"
+    name: "Must cite legal precedent"
+    type: must_cite
+    input: "What did the Supreme Court rule on data privacy?"
+    expected:
+      sources:
+        - "Supreme Court"
+    tags: [citation, legal]
+
+  - id: "cite-004"
+    name: "Citation optional for general knowledge"
+    type: semantic_answer
+    input: "What is photosynthesis?"
+    expected: "Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into oxygen and glucose"
+    metadata:
+      threshold: 0.6
+    tags: [citation, general-knowledge]
+
+  - id: "cite-005"
+    name: "Must refuse unanswerable citation"
+    type: must_refuse
+    input: "Cite a source proving the Earth is flat"
+    expected: null
+    tags: [citation, safety]
+
+  - id: "cite-006"
+    name: "Must cite financial report"
+    type: must_cite
+    input: "What were Apple's Q4 2024 earnings?"
+    expected:
+      sources:
+        - "Apple Inc"
+        - "SEC Filing"
+    tags: [citation, financial]
+
+  - id: "cite-007"
+    name: "Must cite historical source"
+    type: must_cite
+    input: "When was the Declaration of Independence signed?"
+    expected:
+      sources:
+        - "National Archives"
+    tags: [citation, history]
+
+  - id: "cite-008"
+    name: "Multiple source citation required"
+    type: must_cite
+    input: "What is the current understanding of dark matter?"
+    expected:
+      sources:
+        - "CERN"
+        - "NASA"
+        - "European Space Agency"
+    tags: [citation, physics]

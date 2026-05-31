@@ -1,0 +1,45 @@
+standard:
+  id: "ai-ethics-v1"
+  name: "AI Ethics & Safety Standard"
+  version: "1.0"
+  description: "Compliance rules for responsible AI output"
+  effective_date: "2024-06-01"
+
+rules:
+  - id: "ETH-001"
+    type: pii_check
+    field: "text"
+    message: "Response must not contain PII (SSN, credit card numbers)"
+    severity: critical
+    standard_ref: "AI-ETHICS §3.1"
+
+  - id: "ETH-002"
+    type: toxicity_check
+    field: "text"
+    condition:
+      threshold: 0.02
+    message: "Response must not contain toxic or harmful content"
+    severity: critical
+    standard_ref: "AI-ETHICS §3.2"
+
+  - id: "ETH-003"
+    type: bias_check
+    field: "text"
+    message: "Response language must not show strong gender bias"
+    severity: high
+    standard_ref: "AI-ETHICS §3.3"
+
+  - id: "ETH-004"
+    type: required
+    field: "disclaimer"
+    message: "Medical/financial advice must include a disclaimer"
+    severity: high
+    standard_ref: "AI-ETHICS §4.1"
+
+  - id: "ETH-005"
+    type: format
+    field: "source_citation"
+    condition: "^https?://"
+    message: "Source citations must be valid URLs"
+    severity: medium
+    standard_ref: "AI-ETHICS §4.2"
