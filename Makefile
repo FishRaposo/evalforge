@@ -1,7 +1,7 @@
 PYTHON			:= python
 PIP				:= pip
 
-.PHONY: help demo install test lint format clean setup benchmark eval-basic eval-citation eval-compliance eval-all
+.PHONY: help demo install test lint format clean setup benchmark eval-basic eval-citation eval-compliance eval-all serve build-frontend test-e2e
 
 help:
 	@echo "EvalForge - Available targets:"
@@ -13,6 +13,9 @@ help:
 	@echo "  format           Run ruff format"
 	@echo "  clean            Remove build artifacts and caches"
 	@echo "  setup            First-time setup (install + verify)"
+	@echo "  serve            Start the EvalForge API server"
+	@echo "  build-frontend   Build the Next.js dashboard"
+	@echo "  test-e2e         Run Playwright E2E tests"
 	@echo "  eval-basic       Run rag_basic example suite"
 	@echo "  eval-citation    Run rag_citation example suite"
 	@echo "  eval-compliance  Run compliance example suite"
@@ -59,3 +62,12 @@ eval-compliance:
 	evalforge eval example_suites/compliance.yaml --format html
 
 eval-all: eval-basic eval-citation eval-compliance
+
+serve:
+	evalforge serve
+
+build-frontend:
+	cd frontend && npm run build
+
+test-e2e:
+	cd frontend && npm run test:e2e

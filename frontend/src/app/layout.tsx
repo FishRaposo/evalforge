@@ -1,3 +1,5 @@
+import './globals.css';
+
 export const metadata = {
   title: 'EvalForge Dashboard',
   description: 'AI evaluation and compliance analytics',
@@ -10,7 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#0f172a', color: '#e2e8f0' }}>
+      <body className="min-h-screen bg-slate-900 text-slate-200">
         {children}
       </body>
     </html>

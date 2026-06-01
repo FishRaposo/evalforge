@@ -45,7 +45,12 @@ class HtmlReporter(BaseReporter):
             A complete HTML document string.
         """
         summary = report.summary
-        pass_color = "#4caf50" if summary.pass_rate >= 0.8 else "#ff9800" if summary.pass_rate >= 0.6 else "#f44336"
+        if summary.pass_rate >= 0.8:
+            pass_color = "#4caf50"
+        elif summary.pass_rate >= 0.6:
+            pass_color = "#ff9800"
+        else:
+            pass_color = "#f44336"
 
         rows_html = ""
         for result in report.results:
@@ -64,7 +69,10 @@ class HtmlReporter(BaseReporter):
         for result in report.results:
             if not result.passed:
                 error_text = result.error or "N/A"
-                response_text = (result.actual_response[:300] + "...") if len(result.actual_response) > 300 else result.actual_response
+                if len(result.actual_response) > 300:
+                    response_text = result.actual_response[:300] + "..."
+                else:
+                    response_text = result.actual_response
                 failed_rows += f"""
             <div class="failed-test">
                 <h3>{result.test_case_id}: {result.test_case_name}</h3>

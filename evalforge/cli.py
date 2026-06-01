@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 import asyncio
-import sys
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from evalforge import __version__
+
+if TYPE_CHECKING:
+    from evalforge.backends.base import BaseBackend
+    from evalforge.models.test_result import TestResult
+    from evalforge.reporters.base import BaseReporter
 
 app = typer.Typer(
     name="evalforge",
@@ -20,60 +25,81 @@ app = typer.Typer(
 )
 console = Console()
 
+_T = TypeVar("_T")
 
-def _run_async(coro: object) -> object:
-    """Run an async coroutine synchronously for CLI commands.
 
-    Args:
-        coro: The coroutine to execute.
-
-    Returns:
-        The result of the coroutine.
-    """
+def _run_async(coro: Coroutine[Any, Any, _T]) -> _T:
+    """Run an async coroutine synchronously for CLI commands."""
     return asyncio.run(coro)
 
 
 @app.command()
 def eval(
-    suite_path: Path = typer.Argument(..., help="Path to the YAML test suite file", exists=True),
-    backend: str = typer.Option("mock", "--backend", "-b", help="Backend to use: mock or openai"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory for reports"),
-    format: str = typer.Option("markdown", "--format", "-f", help="Report format: markdown, json, html"),
-    fail_threshold: float = typer.Option(0.0, "--fail-threshold", "-t", help="Fail if pass rate below this value"),
+    suite_path: Path = typer.Argument(
+        ..., help="Path to the YAML test suite file", exists=True
+    ),
+    backend: str = typer.Option(
+        "mock", "--backend", "-b", help="Backend to use: mock or openai"
+    ),
+    output: Path | None = typer.Option(
+        None, "--output", "-o", help="Output directory for reports"
+    ),
+    format: str = typer.Option(
+        "markdown", "--format", "-f", help="Report format: markdown, json, html"
+    ),
+    fail_threshold: float = typer.Option(
+        0.0, "--fail-threshold", "-t", help="Fail if pass rate below this value"
+    ),
+    from_hf: str | None = typer.Option(
+        None, "--from-hf", help="HuggingFace dataset name to convert and evaluate"
+    ),
 ) -> None:
     """Run an evaluation suite against an AI backend.
 
     Loads the test suite, executes each test case against the specified
     backend, runs judges on responses, and generates a report.
+    Use --from-hf to auto-generate a suite from a HuggingFace dataset.
     """
-    from evalforge.loader.suite_loader import SuiteLoader
-    from evalforge.runners.rag_runner import RAGRunner
     from evalforge.backends.mock import MockBackend
-    from evalforge.reporters.markdown import MarkdownReporter
-    from evalforge.reporters.json_report import JsonReporter
-    from evalforge.reporters.html import HtmlReporter
+    from evalforge.loader.suite_loader import SuiteLoader
     from evalforge.models.report import Report, ReportSummary
+    from evalforge.reporters.html import HtmlReporter
+    from evalforge.reporters.json_report import JsonReporter
+    from evalforge.reporters.markdown import MarkdownReporter
+    from evalforge.runners.rag_runner import RAGRunner
 
     console.print(f"\n[bold blue]EvalForge[/bold blue] v{__version__}")
-    console.print(f"Loading suite: {suite_path}")
 
     loader = SuiteLoader()
-    suite = loader.load_suite(suite_path)
 
-    if loader.validate_suite(suite):
-        console.print("[red]Suite validation failed.[/red]")
+    if from_hf:
+        from evalforge.datasets.huggingface_loader import HuggingFaceDatasetLoader
+        console.print(f"Loading from HuggingFace: {from_hf}")
+        hf = HuggingFaceDatasetLoader()
+        import tempfile
+        tmp_path = Path(tempfile.gettempdir()) / f"evalforge_hf_{from_hf}.yaml"
+        _run_async(hf.create_test_suite(from_hf, str(tmp_path), max_samples=20))
+        suite = loader.load_suite(tmp_path)
+    else:
+        console.print(f"Loading suite: {suite_path}")
+        suite = loader.load_suite(suite_path)
+
+    errors = loader.validate_suite(suite)
+    if errors:
+        for err in errors:
+            console.print(f"[red]{err}[/red]")
         raise typer.Exit(code=1)
 
     console.print(f"Suite: [bold]{suite.name}[/bold]")
     console.print(f"Test cases: {len(suite.test_cases)}")
 
-    backend_instance: object = MockBackend()
+    backend_instance: BaseBackend = MockBackend()
     if backend == "openai":
         from evalforge.backends.openai_compatible import OpenAICompatibleBackend
         backend_instance = OpenAICompatibleBackend()
 
     runner = RAGRunner(backend=backend_instance)
-    results = _run_async(runner.run_suite(suite))
+    results: list[TestResult] = _run_async(runner.run_suite(suite))
 
     passed = sum(1 for r in results if r.passed)
     failed = len(results) - passed
@@ -95,7 +121,7 @@ def eval(
         metadata={"backend": backend, "suite_path": str(suite_path)},
     )
 
-    reporters: dict[str, object] = {
+    reporters: dict[str, BaseReporter] = {
         "markdown": MarkdownReporter(),
         "json": JsonReporter(),
         "html": HtmlReporter(),
@@ -158,7 +184,9 @@ def list_suites(
 
 @app.command()
 def init(
-    output_dir: Path = typer.Option(Path("example_suites"), "--output", "-o", help="Output directory"),
+    output_dir: Path = typer.Option(
+        Path("example_suites"), "--output", "-o", help="Output directory"
+    ),
 ) -> None:
     """Create example test suites to get started.
 
@@ -280,6 +308,199 @@ def drift(
 def version() -> None:
     """Show the current EvalForge version."""
     console.print(f"EvalForge v{__version__}")
+
+
+@app.command()
+def ci(
+    suite_path: Path = typer.Argument(..., help="Path to YAML test suite", exists=True),
+    backend: str = typer.Option("mock", "--backend", "-b", help="Backend to use"),
+    fail_threshold: float = typer.Option(0.7, "--fail-threshold", help="Minimum passing score"),
+) -> None:
+    """Run evaluation suite in CI mode (posts to GitHub if env vars set)."""
+    from evalforge.ci.github_action import CIPipeline
+
+    console.print(f"[bold blue]EvalForge CI[/bold blue] v{__version__}")
+    result = _run_async(
+        CIPipeline(suite_path=str(suite_path), backend=backend, fail_threshold=fail_threshold).run()
+    )
+    exit_code = result.get("exit_code", 0)
+    if exit_code != 0:
+        console.print("[red]CI pipeline failed.[/red]")
+        raise typer.Exit(code=exit_code)
+    console.print("[green]CI pipeline passed.[/green]")
+
+
+@app.command("baseline")
+def baseline_cmd(
+    action: str = typer.Argument(..., help="Action: set or compare"),
+    report_path: Path = typer.Argument(..., help="Path to report JSON", exists=True),
+) -> None:
+    """Manage evaluation baselines.
+
+    * set — Save a report as the new baseline.
+    * compare — Compare a report against the stored baseline.
+    """
+    from evalforge.drift import DriftDetector
+
+    baseline_file = Path(".evalforge/baseline.json")
+
+    if action == "set":
+        baseline_file.parent.mkdir(parents=True, exist_ok=True)
+        baseline_file.write_text(report_path.read_text(encoding="utf-8"), encoding="utf-8")
+        console.print(f"[green]Baseline saved to {baseline_file}[/green]")
+        return
+
+    if action == "compare":
+        if not baseline_file.exists():
+            console.print(
+                "[red]No baseline found. Run 'evalforge baseline set <report>' first.[/red]"
+            )
+            raise typer.Exit(code=1)
+
+        baseline = DriftDetector.load_report(baseline_file)
+        current = DriftDetector.load_report(report_path)
+        detector = DriftDetector()
+        drift_result = detector.compare(baseline, current)
+
+        console.print(f"Pass rate delta: {drift_result.pass_rate_delta:+.2%}")
+        console.print(f"Avg score delta: {drift_result.avg_score_delta:+.2%}")
+        if drift_result.is_regression:
+            console.print("[red]Regression detected vs baseline[/red]")
+            raise typer.Exit(code=1)
+        console.print("[green]No regression vs baseline[/green]")
+        return
+
+    console.print(f"[red]Unknown action: {action}[/red]")
+    raise typer.Exit(code=2)
+
+
+@app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", "--host", help="Bind host"),
+    port: int = typer.Option(8000, "--port", "-p", help="Bind port"),
+    db_path: str = typer.Option("evalforge_history.db", "--db", help="SQLite history DB path"),
+) -> None:
+    """Start the EvalForge history API server.
+
+    Provides a REST API for browsing past evaluation runs,
+    comparing reports, and exporting data.
+    """
+    import uvicorn
+
+    from evalforge.server.app import create_app
+    from evalforge.storage.history import init_db
+
+    console.print(f"[bold blue]EvalForge Server[/bold blue] v{__version__}")
+    console.print(f"Initializing database: {db_path}")
+    init_db(db_path)
+    app = create_app(db_path=db_path)
+    uvicorn.run(app, host=host, port=port)
+
+
+@app.command("workspace")
+def workspace_cmd(
+    action: str = typer.Argument(..., help="Action: init, list, or use"),
+    name: str | None = typer.Argument(None, help="Workspace name"),
+) -> None:
+    """Manage named workspaces.
+
+    * init <name> — Create a new workspace.
+    * list — Show all workspaces.
+    * use <name> — Set the active workspace.
+    """
+    from evalforge.workspaces.manager import WorkspaceManager
+
+    manager = WorkspaceManager()
+
+    if action == "init":
+        if not name:
+            console.print("[red]Workspace name required[/red]")
+            raise typer.Exit(code=2)
+        manager.init(name)
+        console.print(f"[green]Workspace '{name}' created[/green]")
+        return
+
+    if action == "list":
+        workspaces = manager.list_workspaces()
+        active = manager.get_active()
+        if not workspaces:
+            console.print("No workspaces found")
+            return
+        for ws in workspaces:
+            marker = " [bold cyan]*(active)[/bold cyan]" if ws == active else ""
+            console.print(f"  • {ws}{marker}")
+        return
+
+    if action == "use":
+        if not name:
+            console.print("[red]Workspace name required[/red]")
+            raise typer.Exit(code=2)
+        manager.set_active(name)
+        console.print(f"[green]Active workspace set to '{name}'[/green]")
+        return
+
+    console.print(f"[red]Unknown action: {action}[/red]")
+    raise typer.Exit(code=2)
+
+
+@app.command()
+def schedule(
+    suite_path: Path = typer.Argument(..., help="Path to YAML test suite", exists=True),
+    interval_minutes: int = typer.Option(60, "--interval", "-i", help="Interval in minutes"),
+) -> None:
+    """Schedule a recurring evaluation (runs once if APScheduler unavailable)."""
+    from evalforge.backends.mock import MockBackend
+    from evalforge.loader.suite_loader import SuiteLoader
+    from evalforge.runners.rag_runner import RAGRunner
+    from evalforge.scheduler.cron import SimpleScheduler
+
+    def _run_eval() -> None:
+        loader = SuiteLoader()
+        suite = loader.load_suite(suite_path)
+        runner = RAGRunner(backend=MockBackend())
+        _run_async(runner.run_suite(suite))
+
+    sched = SimpleScheduler()
+    sched.add_job(_run_eval, trigger="interval", minutes=interval_minutes)
+    console.print(f"[green]Scheduled '{suite_path}' every {interval_minutes} minutes[/green]")
+
+
+@app.command()
+def plugins(
+    action: str = typer.Argument("list", help="Action: list or validate"),
+    path: Path | None = typer.Option(None, "--path", help="Plugin directory or file"),
+) -> None:
+    """Discover and validate custom judge plugins.
+
+    * list — List all valid plugins in a directory.
+    * validate — Validate a single plugin file.
+    """
+    from evalforge.plugins import discover_plugins, validate_plugin
+
+    if action == "list":
+        directory = str(path) if path else "."
+        discovered = discover_plugins(directory)
+        if not discovered:
+            console.print("No valid plugins found")
+            return
+        for name, _ in discovered:
+            console.print(f"  • {name}")
+        return
+
+    if action == "validate":
+        if not path:
+            console.print("[red]--path required for validation[/red]")
+            raise typer.Exit(code=2)
+        errors = validate_plugin(str(path))
+        if errors:
+            for err in errors:
+                console.print(f"[red]  ✗ {err}[/red]")
+            raise typer.Exit(code=1)
+        console.print(f"[green]  ✓ {path} is valid[/green]")
+        return
+
+    console.print(f"[red]Unknown action: {action}[/red]")
+    raise typer.Exit(code=2)
 
 
 if __name__ == "__main__":

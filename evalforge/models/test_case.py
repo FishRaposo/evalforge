@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,8 @@ class TestCaseType(str, Enum):
 
     Each type maps to a specific judge that handles the evaluation logic.
     """
+
+    __test__ = False  # Prevent pytest collection
 
     EXACT_ANSWER = "exact_answer"
     SEMANTIC_ANSWER = "semantic_answer"
@@ -37,11 +39,13 @@ class TestCase(BaseModel):
         tags: Optional tags for categorizing and filtering test cases.
     """
 
+    __test__ = False  # Prevent pytest collection
+
     id: str = Field(..., description="Unique test case identifier")
     name: str = Field(..., description="Human-readable test case name")
     type: TestCaseType = Field(..., description="Evaluation type")
     input: str = Field(..., description="Prompt to send to the AI system")
-    expected: Optional[Any] = Field(
+    expected: Any | None = Field(
         None, description="Expected result (string or structured dict)"
     )
     metadata: dict[str, Any] = Field(
@@ -61,10 +65,12 @@ class TestSuite(BaseModel):
         test_cases: The list of test cases to evaluate.
     """
 
+    __test__ = False  # Prevent pytest collection
+
     name: str = Field(..., description="Suite name")
     description: str = Field(default="", description="Suite description")
     version: str = Field(default="1.0", description="Suite version")
-    backend: Optional[str] = Field(None, description="Backend override for this suite")
+    backend: str | None = Field(None, description="Backend override for this suite")
     test_cases: list[TestCase] = Field(
         default_factory=list, description="Test cases in this suite"
     )

@@ -7,26 +7,10 @@ from typing import Any
 
 from evalforge.backends.base import BaseBackend
 from evalforge.judges.base import BaseJudge
-from evalforge.judges.citation_check import CitationCheckJudge
-from evalforge.judges.exact_match import ExactMatchJudge
-from evalforge.judges.forbidden_content import ForbiddenContentJudge
-from evalforge.judges.refusal_check import RefusalCheckJudge
-from evalforge.judges.retrieval_check import RetrievalCheckJudge
-from evalforge.judges.semantic_match import SemanticMatchJudge
-from evalforge.judges.structured_output import StructuredOutputJudge
+from evalforge.judges.registry import _JUDGE_MAP
 from evalforge.models.test_case import TestCase, TestCaseType
 from evalforge.models.test_result import TestResult
 from evalforge.runners.base import BaseRunner
-
-_JUDGE_MAP: dict[TestCaseType, type[BaseJudge]] = {
-    TestCaseType.EXACT_ANSWER: ExactMatchJudge,
-    TestCaseType.SEMANTIC_ANSWER: SemanticMatchJudge,
-    TestCaseType.MUST_CITE: CitationCheckJudge,
-    TestCaseType.MUST_REFUSE: RefusalCheckJudge,
-    TestCaseType.MUST_RETRIEVE: RetrievalCheckJudge,
-    TestCaseType.FORBIDDEN_CONTENT: ForbiddenContentJudge,
-    TestCaseType.STRUCTURED_OUTPUT: StructuredOutputJudge,
-}
 
 
 class RAGRunner(BaseRunner):

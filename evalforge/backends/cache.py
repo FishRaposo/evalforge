@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import OrderedDict
 from typing import Any
 
 from evalforge.backends.base import BackendResponse, BaseBackend
@@ -12,8 +13,10 @@ from evalforge.backends.base import BackendResponse, BaseBackend
 class CachingBackend(BaseBackend):
     """Wraps any BaseBackend and caches responses in memory.
 
-    Responses are cached by a hash of (prompt, context). When the
-    cache reaches max_size the oldest entry is evicted.
+    Responses are cached by a hash of (prompt, context). Uses a true
+    LRU eviction policy: accessing a cached entry moves it to the end.
+    When the cache reaches *max_size* the oldest (least-recently-used)
+    entry is evicted.
 
     Args:
         wrapped: The underlying backend to delegate cache misses to.
@@ -29,7 +32,7 @@ class CachingBackend(BaseBackend):
         """
         self._wrapped = wrapped
         self._max_size = max_size
-        self._cache: dict[str, BackendResponse] = {}
+        self._cache: OrderedDict[str, BackendResponse] = OrderedDict()
 
     def _make_cache_key(
         self, prompt: str, context: dict[str, Any] | None = None
@@ -60,13 +63,13 @@ class CachingBackend(BaseBackend):
         """
         cache_key = self._make_cache_key(prompt, context)
         if cache_key in self._cache:
+            self._cache.move_to_end(cache_key)
             return self._cache[cache_key]
 
         response = await self._wrapped.query(prompt, context)
 
         if len(self._cache) >= self._max_size:
-            oldest_key = next(iter(self._cache))
-            del self._cache[oldest_key]
+            self._cache.popitem(last=False)
 
         self._cache[cache_key] = response
         return response

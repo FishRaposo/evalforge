@@ -9,10 +9,10 @@ from typing import Any
 from evalforge.backends.base import BaseBackend
 from evalforge.judges.base import BaseJudge
 from evalforge.judges.exact_match import ExactMatchJudge
-from evalforge.models.test_case import TestCase
+from evalforge.judges.registry import _JUDGE_MAP
+from evalforge.models.test_case import TestCase, TestCaseType
 from evalforge.models.test_result import TestResult
 from evalforge.runners.base import BaseRunner
-from evalforge.runners.rag_runner import _JUDGE_MAP
 
 
 class AgentRunner(BaseRunner):
@@ -35,7 +35,7 @@ class AgentRunner(BaseRunner):
         """
         super().__init__(backend)
         self._max_turns = max_turns
-        self._judges: dict = {
+        self._judges: dict[TestCaseType, BaseJudge] = {
             tt: judge_cls() for tt, judge_cls in _JUDGE_MAP.items()
         }
 

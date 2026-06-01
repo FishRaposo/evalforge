@@ -58,8 +58,44 @@
 - [x] Comprehensive documentation and examples
 - [x] Type coverage: Full mypy strict compliance
 
+---
+
+## Phase 4 — Platform
+
+**Goal**: Add persistent history, REST API, and enterprise features.
+
+### Deliverables
+- [x] SQLite history store: Persistent evaluation run tracking
+- [x] FastAPI server: `evalforge serve` with REST endpoints
+- [x] New backends: Anthropic, LiteLLM, HuggingFace (all sim-first)
+- [x] New reporters: JUnit XML, SARIF, terminal Rich tables
+- [x] Baseline management: `evalforge baseline set/compare`
+- [x] CI command: `evalforge ci` with GitHub PR reporting
+- [x] Workspaces: Scoped project databases
+- [x] Scheduler: Recurring evaluation jobs
+- [x] Notifications: Slack and Discord webhooks
+- [x] Plugin discovery: `evalforge plugins list/validate`
+
 ### Acceptance Criteria
-- Agent runner handles multi-step tool chains
-- Drift detection flags quality regression
-- Custom judges can be loaded via entry points
-- All tests pass, type checking is clean
+- API serves run history and comparison endpoints
+- All backends work offline with simulated responses
+- CI pipeline integrates with GitHub Actions
+- Baseline regression detection works end-to-end
+
+---
+
+## Phase 5 — Dashboard
+
+**Goal**: Modern UI with real data and CI-grade E2E tests.
+
+### Deliverables
+- [x] Tailwind CSS v4 + component-based architecture
+- [x] Dashboard fetches real data from FastAPI backend
+- [x] Compare view for run-to-run deltas
+- [x] Playwright E2E tests scaffolded
+- [x] Frontend builds successfully for production
+
+### Acceptance Criteria
+- Dashboard renders without mock data (falls back gracefully)
+- `/compare` page supports run ID selection
+- E2E tests validate navigation and rendering

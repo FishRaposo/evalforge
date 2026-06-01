@@ -39,8 +39,8 @@ class MarkdownReporter(BaseReporter):
 
         lines.append("## Summary")
         lines.append("")
-        lines.append(f"| Metric | Value |")
-        lines.append(f"|--------|-------|")
+        lines.append("| Metric | Value |")
+        lines.append("|--------|-------|")
         lines.append(f"| Total | {report.summary.total} |")
         lines.append(f"| Passed | {report.summary.passed} |")
         lines.append(f"| Failed | {report.summary.failed} |")

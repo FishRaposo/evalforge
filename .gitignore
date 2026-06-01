@@ -24,3 +24,6 @@ reports/
 *.cover
 .coverage
 htmlcov/
+node_modules/
+.next/
+*.tsbuildinfo

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,8 @@ class TestResult(BaseModel):
         error: Error message if the test failed due to an exception.
     """
 
+    __test__ = False  # Prevent pytest collection
+
     test_case_id: str = Field(..., description="Evaluated test case ID")
     test_case_name: str = Field(default="", description="Test case name")
     passed: bool = Field(..., description="Whether evaluation passed")
@@ -33,7 +35,7 @@ class TestResult(BaseModel):
     execution_time_ms: float = Field(
         default=0.0, description="Execution time in milliseconds"
     )
-    error: Optional[str] = Field(None, description="Error message if test failed")
+    error: str | None = Field(None, description="Error message if test failed")
 
 
 class TestRunResult(BaseModel):
@@ -59,6 +61,6 @@ class TestRunResult(BaseModel):
     started_at: datetime = Field(
         default_factory=datetime.now, description="Suite start timestamp"
     )
-    completed_at: Optional[datetime] = Field(
+    completed_at: datetime | None = Field(
         None, description="Suite completion timestamp"
     )

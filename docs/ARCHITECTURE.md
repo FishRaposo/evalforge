@@ -19,23 +19,38 @@ graph TB
     subgraph Backends
         Mock[Mock Backend]
         OpenAI[OpenAI-Compatible Backend]
+        Anthropic[Anthropic Backend]
+        LiteLLM[LiteLLM Backend]
+        HF[HuggingFace Backend]
     end
 
     subgraph Output
         MD[Markdown Reporter]
         JSON[JSON Reporter]
         HTML[HTML Reporter]
+        JUnit[JUnit XML Reporter]
+        SARIF[SARIF Reporter]
+        Term[Terminal Reporter]
     end
 
     YAML --> Loader
     Loader --> Runner
     Runner --> Mock
     Runner --> OpenAI
+    Runner --> Anthropic
+    Runner --> LiteLLM
+    Runner --> HF
     Mock --> Judge
     OpenAI --> Judge
+    Anthropic --> Judge
+    LiteLLM --> Judge
+    HF --> Judge
     Judge --> MD
     Judge --> JSON
     Judge --> HTML
+    Judge --> JUnit
+    Judge --> SARIF
+    Judge --> Term
 ```
 
 ## Data Flow
@@ -82,6 +97,21 @@ Transform evaluation results into human and machine-readable formats. Markdown f
 ### Models (`evalforge/models/`)
 Pydantic v2 models that define the type-safe data contracts throughout the system. All data flows through these validated models.
 
+### Storage (`evalforge/storage/`)
+SQLite-backed persistence for evaluation run history. Stores reports, baselines, and run metadata for longitudinal comparison and dashboard consumption.
+
+### API (`evalforge/server/`)
+FastAPI application exposing REST endpoints for run history, comparison, and baseline management. Consumed by the Next.js dashboard and CI integrations.
+
+### Workspaces (`evalforge/workspaces/`)
+Scoped project databases for multi-project environments. Each workspace gets its own SQLite database and baseline storage.
+
+### Scheduler (`evalforge/scheduler/`)
+Lightweight cron-like scheduler for recurring evaluations. Uses APScheduler when available; falls back to immediate execution in offline environments.
+
+### Notifications (`evalforge/notifications/`)
+Webhook notifiers for Slack and Discord. No-op when no webhook URL is configured, ensuring offline-first behavior.
+
 ## Error Handling Strategy
 
 | Error Type | Handling |
@@ -94,7 +124,8 @@ Pydantic v2 models that define the type-safe data contracts throughout the syste
 
 ## Extension Points
 
-- **Custom judges**: Subclass `BaseJudge`, implement `judge()` method
-- **Custom backends**: Subclass `BaseBackend`, implement `query()` and `health_check()`
-- **Custom reporters**: Subclass `BaseReporter`, implement `generate()` method
-- **Test types**: Add to `TestCaseType` enum, create corresponding judge
+- **Custom judges**: Subclass `BaseJudge`, implement `judge()` method. Register via `evalforge.judges.registry.register_judge()`.
+- **Custom backends**: Subclass `BaseBackend`, implement `query()` and `health_check()`. All new backends should support offline-first simulated mode.
+- **Custom reporters**: Subclass `BaseReporter`, implement `generate()` method.
+- **Test types**: Add to `TestCaseType` enum, create corresponding judge, register in the judge registry.
+- **Plugins**: Drop a Python file with a `judge(test_case, response)` function into a directory and use `evalforge plugins list/validate`.

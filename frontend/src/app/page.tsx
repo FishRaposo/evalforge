@@ -1,155 +1,188 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card } from "@/components/Card";
+import { ComplianceList } from "@/components/ComplianceList";
+import { Nav } from "@/components/Nav";
+import { RunTable } from "@/components/RunTable";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface EvalRun {
   id: string;
+  suite_name: string;
   timestamp: string;
-  suite: string;
-  total: number;
+  pass_rate: number;
+  avg_score: number;
+  total_tests: number;
   passed: number;
   failed: number;
-  avgScore: number;
-  durationMs: number;
 }
 
-interface ComplianceResult {
+interface ComplianceItem {
   id: string;
+  suite_name: string;
   timestamp: string;
-  standardName: string;
   score: number;
-  totalRules: number;
-  passedRules: number;
-  criticalFailures: number;
-}
-
-const mockRuns: EvalRun[] = [
-  { id: "e1", timestamp: new Date().toISOString(), suite: "rag_regression_v2", total: 24, passed: 22, failed: 2, avgScore: 0.91, durationMs: 4200 },
-  { id: "e2", timestamp: new Date(Date.now() - 3600000).toISOString(), suite: "rag_regression_v2", total: 24, passed: 23, failed: 1, avgScore: 0.94, durationMs: 3800 },
-  { id: "e3", timestamp: new Date(Date.now() - 7200000).toISOString(), suite: "refusal_suite", total: 12, passed: 12, failed: 0, avgScore: 1.0, durationMs: 1500 },
-];
-
-const mockCompliance: ComplianceResult[] = [
-  { id: "c1", timestamp: new Date().toISOString(), standardName: "AI Ethics & Safety Standard", score: 0.95, totalRules: 5, passedRules: 4, criticalFailures: 0 },
-  { id: "c2", timestamp: new Date(Date.now() - 3600000).toISOString(), standardName: "AI Ethics & Safety Standard", score: 0.60, totalRules: 5, passedRules: 3, criticalFailures: 1 },
-];
-
-function Card({ title, value, subtitle, color = "#38bdf8" }: { title: string; value: string; subtitle?: string; color?: string }) {
-  return (
-    <div style={{ background: "#1e293b", borderRadius: 8, padding: 20, minWidth: 180 }}>
-      <div style={{ fontSize: 12, textTransform: "uppercase", color: "#94a3b8", marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 28, fontWeight: 700, color }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{subtitle}</div>}
-    </div>
-  );
-}
-
-function ScoreBar({ score }: { score: number }) {
-  const color = score >= 0.9 ? "#4ade80" : score >= 0.7 ? "#facc15" : "#f87171";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <div style={{ flex: 1, height: 6, background: "#334155", borderRadius: 3, overflow: "hidden" }}>
-        <div style={{ width: `${score * 100}%`, height: "100%", background: color, borderRadius: 3 }} />
-      </div>
-      <span style={{ fontSize: 13, fontWeight: 600, color }}>{(score * 100).toFixed(0)}%</span>
-    </div>
-  );
+  total_rules: number;
+  passed_rules: number;
+  failed_rules: number;
 }
 
 export default function DashboardPage() {
-  const [runs, setRuns] = useState<EvalRun[]>(mockRuns);
-  const [compliance, setCompliance] = useState<ComplianceResult[]>(mockCompliance);
+  const [runs, setRuns] = useState<EvalRun[]>([]);
+  const [compliance, setCompliance] = useState<ComplianceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   useEffect(() => {
-    setRuns(mockRuns);
-    setCompliance(mockCompliance);
+    async function fetchData() {
+      try {
+        const [runsRes] = await Promise.all([
+          fetch(`${API_URL}/api/runs?limit=20`),
+        ]);
+        if (!runsRes.ok) throw new Error(`API error: ${runsRes.status}`);
+        const runsData: EvalRun[] = await runsRes.json();
+        setRuns(runsData);
+        // Mock compliance from run scores for demo
+        setCompliance(
+          runsData.slice(0, 5).map((r) => ({
+            id: r.id,
+            suite_name: r.suite_name,
+            timestamp: r.timestamp,
+            score: r.pass_rate,
+            total_rules: r.total_tests,
+            passed_rules: r.passed,
+            failed_rules: r.failed,
+          }))
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, []);
 
-  const totalTests = runs.reduce((s, r) => s + r.total, 0);
-  const totalPassed = runs.reduce((s, r) => s + r.passed, 0);
+  const totalTests = runs.reduce((s, r) => s + (r.total_tests || 0), 0);
+  const totalPassed = runs.reduce((s, r) => s + (r.passed || 0), 0);
   const passRate = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
+  const avgScore = runs.length > 0 ? runs.reduce((s, r) => s + (r.avg_score || 0), 0) / runs.length : 0;
   const latestCompliance = compliance[0];
 
+  // SVG Chart Calculation for Score Trends
+  const trendPoints = runs.slice(0, 10).reverse().map((r) => r.avg_score * 100);
+  const chartHeight = 60;
+  const chartWidth = 480;
+  const maxScore = 100;
+  const pointsStr = trendPoints
+    .map((score, idx) => {
+      const x = (idx / Math.max(trendPoints.length - 1, 1)) * chartWidth;
+      const y = chartHeight - (score / maxScore) * chartHeight * 0.8 - 4;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px" }}>
-      <header style={{ marginBottom: 32 }}>
-        <h1 style={{ margin: 0, fontSize: 28 }}>EvalForge Dashboard</h1>
-        <p style={{ margin: "4px 0 0", color: "#94a3b8" }}>Evaluation runs, compliance reports, and regression tracking</p>
-      </header>
+    <>
+      <Nav />
+      <main className="max-w-6xl mx-auto px-6 py-10 text-slate-100 font-sans">
+        
+        {/* Glow Header Block */}
+        <header className="relative mb-10 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-xl backdrop-blur-md">
+          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="absolute left-1/3 bottom-0 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="relative">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-indigo-400 bg-clip-text text-transparent">
+              EvalForge Harness
+            </h1>
+            <p className="text-slate-400 mt-2 text-sm max-w-xl">
+              Execute multi-agent benchmark suites, run regression detectors, and verify rule-pack compliance matrices.
+            </p>
+          </div>
+        </header>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
-        <Card title="Eval Runs Today" value={String(runs.length)} subtitle="2 suites executed" />
-        <Card title="Pass Rate" value={`${passRate}%`} subtitle={`${totalPassed}/${totalTests} tests`} color={passRate >= 90 ? "#4ade80" : "#facc15"} />
-        <Card title="Avg Score" value="0.92" subtitle="Semantic + citation" color="#f472b6" />
-        <Card title="Compliance" value={latestCompliance ? `${(latestCompliance.score * 100).toFixed(0)}%` : "N/A"} subtitle={`${latestCompliance?.criticalFailures ?? 0} critical failures`} color={latestCompliance && latestCompliance.score >= 0.9 ? "#4ade80" : "#f87171"} />
-      </section>
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
+            <span className="ml-3 text-slate-400 text-sm">Parsing evaluation archives...</span>
+          </div>
+        )}
+        
+        {error && (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-900/10 p-5 mb-8 text-rose-450 text-sm backdrop-blur-sm">
+            Operational Error: {error}. Please check if the EvalForge history API is running.
+          </div>
+        )}
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
-        <div style={{ background: "#1e293b", borderRadius: 8, padding: 20 }}>
-          <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>Recent Evaluation Runs</h2>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-            <thead>
-              <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155" }}>
-                <th style={{ padding: "8px 0" }}>Suite</th>
-                <th style={{ padding: "8px 0" }}>Score</th>
-                <th style={{ padding: "8px 0" }}>Passed</th>
-                <th style={{ padding: "8px 0" }}>Failed</th>
-                <th style={{ padding: "8px 0" }}>Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r) => (
-                <tr key={r.id} style={{ borderBottom: "1px solid #1e293b" }}>
-                  <td style={{ padding: "8px 0", fontWeight: 500 }}>{r.suite}</td>
-                  <td style={{ padding: "8px 0" }}><ScoreBar score={r.avgScore} /></td>
-                  <td style={{ padding: "8px 0", color: "#4ade80" }}>{r.passed}</td>
-                  <td style={{ padding: "8px 0", color: "#f87171" }}>{r.failed}</td>
-                  <td style={{ padding: "8px 0" }}>{(r.durationMs / 1000).toFixed(1)}s</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {!loading && (
+          <>
+            {/* Quick Metrics */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              <Card title="EVAL RUNS" value={String(runs.length)} subtitle="recent runs" />
+              <Card
+                title="CUMULATIVE PASS RATE"
+                value={`${passRate}%`}
+                subtitle={`${totalPassed}/${totalTests} tests`}
+                color={passRate >= 90 ? "text-emerald-400" : passRate >= 70 ? "text-amber-400" : "text-rose-400"}
+              />
+              <Card title="AVERAGE SCORE" value={avgScore.toFixed(2)} subtitle="across all benchmarks" color="text-indigo-400" />
+              <Card
+                title="LATEST COMPLIANCE"
+                value={latestCompliance ? `${(latestCompliance.score * 100).toFixed(0)}%` : "N/A"}
+                subtitle={`${latestCompliance?.failed_rules ?? 0} active failures`}
+                color={latestCompliance && latestCompliance.score >= 0.9 ? "text-emerald-400" : "text-rose-400"}
+              />
+            </section>
 
-        <div style={{ background: "#1e293b", borderRadius: 8, padding: 20 }}>
-          <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>Compliance Reports</h2>
-          {compliance.map((c) => (
-            <div key={c.id} style={{ padding: "12px 0", borderBottom: "1px solid #334155" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontWeight: 600 }}>{c.standardName}</span>
-                <span style={{ fontSize: 12, color: "#64748b" }}>{new Date(c.timestamp).toLocaleTimeString()}</span>
+            {/* Visual Telemetry Trends */}
+            <section className="mb-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-200">Evaluation Score Trends</h2>
+                  <p className="text-xs text-slate-500">Benchmark score trajectory across the last 10 runs</p>
+                </div>
+                <span className="text-xs font-semibold text-emerald-400">Target: 90.00+</span>
               </div>
-              <ScoreBar score={c.score} />
-              <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 12, color: "#94a3b8" }}>
-                <span>{c.totalRules} rules</span>
-                <span style={{ color: "#4ade80" }}>{c.passedRules} passed</span>
-                {c.criticalFailures > 0 && (
-                  <span style={{ color: "#f87171" }}>{c.criticalFailures} critical</span>
+              <div className="h-16 flex items-end">
+                {trendPoints.length === 0 ? (
+                  <div className="w-full text-center text-xs text-slate-600">Insufficient historical data</div>
+                ) : (
+                  <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" className="overflow-visible">
+                    <polyline
+                      fill="none"
+                      stroke="#818cf8"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={pointsStr}
+                      className="drop-shadow-[0_4px_6px_rgba(129,140,248,0.4)]"
+                    />
+                  </svg>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            </section>
 
-      <section style={{ background: "#1e293b", borderRadius: 8, padding: 20 }}>
-        <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>Rule Pack Preview</h2>
-        <pre style={{ background: "#0f172a", padding: 16, borderRadius: 6, fontSize: 13, overflowX: "auto", color: "#e2e8f0" }}>
-{`standard:
-  id: "ai-ethics-v1"
-  name: "AI Ethics & Safety Standard"
-rules:
-  - id: "ETH-001"
-    type: pii_check
-    severity: critical
-  - id: "ETH-002"
-    type: toxicity_check
-    severity: critical
-  - id: "ETH-003"
-    type: bias_check
-    severity: high`}
-        </pre>
-      </section>
-    </div>
+            {/* Split Details Section */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-6 shadow-md hover:border-slate-700/60 transition-colors">
+                <h2 className="text-base font-bold bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
+                  Recent Evaluation Runs
+                </h2>
+                <RunTable runs={runs} />
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-6 shadow-md hover:border-slate-700/60 transition-colors">
+                <h2 className="text-base font-bold bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
+                  Compliance Rule Matrix
+                </h2>
+                <ComplianceList items={compliance} />
+              </div>
+            </section>
+          </>
+        )}
+      </main>
+    </>
   );
 }

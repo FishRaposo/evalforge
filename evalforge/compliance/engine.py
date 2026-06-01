@@ -72,7 +72,7 @@ class ComplianceEngine:
         if not file_path.exists():
             raise FileNotFoundError(f"Rule pack not found: {file_path}")
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         self._standard = data.get("standard", {})
@@ -99,7 +99,7 @@ class ComplianceEngine:
             else:
                 failed += 1
 
-        total = len(self._rules) if self._rules else 1
+        total = len(self._rules)
         score = passed / total if total > 0 else 1.0
 
         return ComplianceReport(
@@ -210,13 +210,13 @@ class ComplianceEngine:
             return False
 
         if operator == "eq":
-            return value_a == value_b
+            return bool(value_a == value_b)
         elif operator == "neq":
-            return value_a != value_b
+            return bool(value_a != value_b)
         elif operator == "after":
-            return str(value_a) > str(value_b)
+            return bool(str(value_a) > str(value_b))
         elif operator == "before":
-            return str(value_a) < str(value_b)
+            return bool(str(value_a) < str(value_b))
         return True
 
     def _check_pii(self, content: dict[str, Any]) -> bool:
@@ -249,4 +249,4 @@ class ComplianceEngine:
         toxic_words = ["kill", "murder", "rape", "torture", "genocide", "terrorist"]
         hits = sum(len(re.findall(rf"\b{w}\b", text)) for w in toxic_words)
         density = hits / max(len(text.split()), 1)
-        return density <= threshold
+        return bool(density <= float(threshold))

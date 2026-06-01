@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from evalforge.backends.base import BackendResponse, BaseBackend
 
@@ -23,7 +23,7 @@ class MockBackend(BaseBackend):
 
     def __init__(
         self,
-        responses_file: Optional[Path] = None,
+        responses_file: Path | None = None,
         default_response: str = "This is a mock response.",
     ) -> None:
         """Initialize the mock backend with optional response file.
@@ -45,7 +45,7 @@ class MockBackend(BaseBackend):
                 self._load_responses(default_file)
 
     async def query(
-        self, prompt: str, context: Optional[dict[str, Any]] = None
+        self, prompt: str, context: dict[str, Any] | None = None
     ) -> BackendResponse:
         """Return a mock response matching the prompt.
 
@@ -95,7 +95,7 @@ class MockBackend(BaseBackend):
             ValueError: If the file contains invalid JSON.
         """
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             if isinstance(data, dict):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,7 @@ class BaseBackend(ABC):
 
     @abstractmethod
     async def query(
-        self, prompt: str, context: Optional[dict[str, Any]] = None
+        self, prompt: str, context: dict[str, Any] | None = None
     ) -> BackendResponse:
         """Send a query to the AI backend and return the response.
 

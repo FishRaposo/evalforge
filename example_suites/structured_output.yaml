@@ -1,0 +1,56 @@
+name: "Structured Output Validation"
+description: "Test cases for validating structured JSON/schema responses"
+version: "1.0"
+backend: "mock"
+
+test_cases:
+  - id: "structured-001"
+    name: "Simple JSON object"
+    type: structured_output
+    input: "Return a JSON object with keys 'name' and 'age'"
+    expected:
+      schema:
+        type: object
+        required: ["name", "age"]
+        properties:
+          name:
+            type: string
+          age:
+            type: integer
+    tags: [structured, json]
+
+  - id: "structured-002"
+    name: "Nested object"
+    type: structured_output
+    input: "Return a JSON object with a nested 'address' object containing 'city' and 'country'"
+    expected:
+      schema:
+        type: object
+        required: ["address"]
+        properties:
+          address:
+            type: object
+            required: ["city", "country"]
+            properties:
+              city:
+                type: string
+              country:
+                type: string
+    tags: [structured, nested]
+
+  - id: "structured-003"
+    name: "Array of items"
+    type: structured_output
+    input: "Return a JSON array of objects, each with 'id' and 'value'"
+    expected:
+      schema:
+        type: array
+        items:
+          type: object
+          required: ["id", "value"]
+          properties:
+            id:
+              type: integer
+            value:
+              type: string
+    tags: [structured, array]

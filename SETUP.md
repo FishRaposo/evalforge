@@ -8,30 +8,41 @@
 ## CLI Setup
 
 ```bash
-pip install -e .
+pip install -e ".[dev]"
 ```
 
-## Run Tests
+## Run Evaluations
 
 ```bash
-evalforge run tests/
+# Mock backend (offline, no API keys)
+evalforge eval example_suites/rag_basic.yaml --backend mock
+
+# OpenAI backend (requires OPENAI_API_KEY)
+evalforge eval example_suites/rag_basic.yaml --backend openai
+```
+
+## Run Test Suite
+
+```bash
+make test
 ```
 
 ## Generate Report
 
 ```bash
-evalforge report --input results.json --output report.html
+evalforge eval example_suites/rag_basic.yaml --format html --output reports/
 ```
 
 ## Dashboard Setup
 
 ```bash
-cd dashboard
+cd frontend
 npm install
 npm run dev
 ```
 
 ## Verify
 
-- Dashboard: http://localhost:3000
-- Browse historical reports
+- Dashboard: http://localhost:3002
+- API server: `evalforge serve` → http://localhost:8000
+- Browse historical reports at `/api/runs`

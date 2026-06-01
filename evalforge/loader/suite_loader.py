@@ -8,15 +8,14 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from evalforge.loader.schema import SuiteFile, TestCaseFile
-from evalforge.models.test_case import TestCase, TestSuite
+from evalforge.models.test_case import TestSuite
 
 
 class SuiteLoader:
     """Loads and validates YAML test suite files into TestSuite models.
 
-    Provides methods to parse YAML files, validate their structure against
-    the expected schema, and convert them into Pydantic TestSuite models.
+    Validates raw YAML directly against the canonical ``TestSuite`` / ``TestCase``
+    Pydantic models so there is no separate intermediate schema layer.
     """
 
     def load_suite(self, path: Path) -> TestSuite:
@@ -39,30 +38,11 @@ class SuiteLoader:
         raw_data = self._resolve_includes(raw_data, Path(path).parent)
 
         try:
-            suite_file = SuiteFile.model_validate(raw_data)
+            suite = TestSuite.model_validate(raw_data)
         except ValidationError as exc:
             raise ValueError(f"Schema validation failed for {path}: {exc}") from exc
 
-        test_cases = [
-            TestCase(
-                id=tc.id,
-                name=tc.name,
-                type=tc.type,
-                input=tc.input,
-                expected=tc.expected,
-                metadata=tc.metadata,
-                tags=tc.tags,
-            )
-            for tc in suite_file.test_cases
-        ]
-
-        return TestSuite(
-            name=suite_file.name,
-            description=suite_file.description,
-            version=suite_file.version,
-            backend=suite_file.backend,
-            test_cases=test_cases,
-        )
+        return suite
 
     def validate_suite(self, suite: TestSuite) -> list[str]:
         """Validate a loaded test suite for correctness.
@@ -112,7 +92,7 @@ class SuiteLoader:
             ValueError: If the file contains invalid YAML syntax.
         """
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
         except yaml.YAMLError as exc:
             raise ValueError(f"Invalid YAML in {path}: {exc}") from exc
