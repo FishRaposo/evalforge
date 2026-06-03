@@ -295,13 +295,13 @@ class CIPipeline:
         Returns:
             Pipeline result.
         """
+        # Load suite
+        from pathlib import Path
+
         from evalforge.backends.mock import MockBackend
         from evalforge.backends.openai_compatible import OpenAICompatibleBackend
         from evalforge.loader.suite_loader import SuiteLoader
         from evalforge.runners.rag_runner import RAGRunner
-
-        # Load suite
-        from pathlib import Path
         loader = SuiteLoader()
         suite = loader.load_suite(Path(self.suite_path))
 

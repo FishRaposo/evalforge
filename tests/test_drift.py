@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from evalforge.drift import DriftDetector, DriftResult
+from evalforge.drift import DriftDetector
 from evalforge.models.report import Report, ReportSummary
 from evalforge.models.test_result import TestResult
 

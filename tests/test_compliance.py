@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from evalforge.compliance.engine import ComplianceEngine, ComplianceReport
+from evalforge.compliance.engine import ComplianceEngine
 
 
 @pytest.fixture
@@ -179,7 +179,6 @@ class TestComplianceReport:
         assert report.score == 0.5
 
     def test_load_rule_pack(self, tmp_path: pytestFixture) -> None:
-        from pathlib import Path
         import yaml
         path = tmp_path / "rules.yaml"
         data = {

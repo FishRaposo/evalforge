@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from evalforge.judges.base import JudgeResult
 from evalforge.models.test_case import TestCase, TestCaseType
 
 

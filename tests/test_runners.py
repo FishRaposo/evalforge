@@ -6,8 +6,8 @@ import pytest
 
 from evalforge.backends.mock import MockBackend
 from evalforge.models.test_case import TestCase, TestCaseType, TestSuite
-from evalforge.runners.rag_runner import RAGRunner
 from evalforge.runners.agent_runner import AgentRunner
+from evalforge.runners.rag_runner import RAGRunner
 
 
 class TestRAGRunner:

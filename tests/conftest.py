@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
 from evalforge.backends.mock import MockBackend
+from evalforge.models.report import Report, ReportSummary
 from evalforge.models.test_case import TestCase, TestCaseType, TestSuite
 from evalforge.models.test_result import TestResult
-from evalforge.models.report import Report, ReportSummary
 
 
 @pytest.fixture

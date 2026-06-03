@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-import json
-import pytest
-
 from evalforge.models.report import Report, ReportSummary
-from evalforge.reporters.markdown import MarkdownReporter
-from evalforge.reporters.json_report import JsonReporter
 from evalforge.reporters.html import HtmlReporter
+from evalforge.reporters.json_report import JsonReporter
+from evalforge.reporters.markdown import MarkdownReporter
 
 
 class TestMarkdownReporter:
@@ -60,7 +58,7 @@ class TestJsonReporter:
         assert output_path.exists()
         assert output_path.suffix == ".json"
 
-        with open(output_path, "r", encoding="utf-8") as f:
+        with open(output_path, encoding="utf-8") as f:
             data = json.load(f)
 
         assert data["suite_name"] == sample_report.suite_name
@@ -72,7 +70,7 @@ class TestJsonReporter:
         reporter = JsonReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
 
-        with open(output_path, "r", encoding="utf-8") as f:
+        with open(output_path, encoding="utf-8") as f:
             data = json.load(f)
 
         assert data["summary"]["total"] == 3

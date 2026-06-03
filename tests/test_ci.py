@@ -116,7 +116,6 @@ class TestCIPipeline:
 
     @pytest.fixture
     def sample_suite_path(self, tmp_path: pytestFixture) -> str:
-        from pathlib import Path
         import yaml
         path = tmp_path / "suite.yaml"
         data = {

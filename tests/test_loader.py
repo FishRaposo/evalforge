@@ -53,7 +53,7 @@ test_cases:
 
     def test_validate_suite_errors(self) -> None:
         """validate_suite should return errors for invalid suites."""
-        from evalforge.models.test_case import TestCase, TestSuite
+        from evalforge.models.test_case import TestSuite
 
         suite = TestSuite(
             name="Empty Suite",
@@ -108,7 +108,7 @@ test_cases:
         included_file = tmp_path / "included.yaml"
         included_file.write_text(included_yaml, encoding="utf-8")
 
-        main_yaml = f"""
+        main_yaml = """
 name: "Main Suite"
 description: "Suite with includes"
 version: "1.0"
