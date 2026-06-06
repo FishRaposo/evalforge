@@ -35,7 +35,7 @@ class SlackNotifier:
         payload = {
             "text": (
                 f"*EvalForge Report: {report.get('suite_name', 'Unknown')}*\n"
-                f"Passed: {summary.get('passed', 0)} / {summary.get('total_tests', 0)}\n"
+                f"Passed: {summary.get('passed', 0)} / {summary.get('total', summary.get('total_tests', 0))}\n"
                 f"Pass Rate: {summary.get('pass_rate', 0.0):.1%}\n"
                 f"Avg Score: {summary.get('avg_score', 0.0):.2f}"
             ),

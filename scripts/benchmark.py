@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Benchmark script for EvalForge performance testing."""
 
+import statistics
 import subprocess
 import time
-import statistics
 from pathlib import Path
 
 
@@ -15,7 +15,7 @@ def benchmark_suite(suite_path: str, iterations: int = 10) -> dict:
     for _ in range(iterations):
         start = time.perf_counter()
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["python", "-m", "evalforge", "eval", suite_path, "--backend", "mock", "-o", "/tmp/benchmark.json"],
                 capture_output=True,
                 check=True,

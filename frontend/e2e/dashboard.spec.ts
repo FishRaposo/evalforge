@@ -7,7 +7,7 @@ test.describe("Dashboard", () => {
     await expect(page.locator("text=Eval Runs")).toBeVisible();
     await expect(page.locator("text=Pass Rate")).toBeVisible();
     await expect(page.locator("text=Avg Score")).toBeVisible();
-    await expect(page.locator("text=Compliance")).toBeVisible();
+    await expect(page.locator("text=Latest Compliance")).toBeVisible();
   });
 
   test("runs table renders", async ({ page }) => {

@@ -69,7 +69,7 @@ class HistoryStore:
                     report.get("suite_name", "unknown"),
                     datetime.now().isoformat(),
                     report.get("backend"),
-                    summary.get("total_tests", 0),
+                    summary.get("total", summary.get("total_tests", 0)),
                     summary.get("passed", 0),
                     summary.get("failed", 0),
                     summary.get("pass_rate", 0.0),

@@ -27,3 +27,5 @@ htmlcov/
 node_modules/
 .next/
 *.tsbuildinfo
+*.db
+frontend/test-results/

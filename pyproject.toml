@@ -61,7 +61,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["UP042"]
+ignore = ["UP042", "E501", "N816"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -70,3 +70,13 @@ testpaths = ["tests"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "yaml",
+    "datasets",
+    "apscheduler.*",
+    "anthropic",
+]
+ignore_missing_imports = true
+

@@ -96,7 +96,7 @@ export default function DashboardPage() {
           <div className="absolute left-1/3 bottom-0 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
           <div className="relative">
             <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-              EvalForge Harness
+              EvalForge Dashboard
             </h1>
             <p className="text-slate-400 mt-2 text-sm max-w-xl">
               Execute multi-agent benchmark suites, run regression detectors, and verify rule-pack compliance matrices.
@@ -128,7 +128,7 @@ export default function DashboardPage() {
                 subtitle={`${totalPassed}/${totalTests} tests`}
                 color={passRate >= 90 ? "text-emerald-400" : passRate >= 70 ? "text-amber-400" : "text-rose-400"}
               />
-              <Card title="AVERAGE SCORE" value={avgScore.toFixed(2)} subtitle="across all benchmarks" color="text-indigo-400" />
+              <Card title="AVG SCORE" value={avgScore.toFixed(2)} subtitle="across all benchmarks" color="text-indigo-400" />
               <Card
                 title="LATEST COMPLIANCE"
                 value={latestCompliance ? `${(latestCompliance.score * 100).toFixed(0)}%` : "N/A"}

@@ -33,13 +33,28 @@ def _run_async(coro: Coroutine[Any, Any, _T]) -> _T:
     return asyncio.run(coro)
 
 
+def get_db_path(db_option: str | None = None) -> str:
+    """Resolve the active database path based on option or active workspace."""
+    if db_option:
+        return db_option
+    try:
+        from evalforge.workspaces.manager import WorkspaceManager
+        manager = WorkspaceManager()
+        active = manager.get_active()
+        if active:
+            return str(manager._db_path(active))
+    except Exception:
+        pass
+    return "evalforge_history.db"
+
+
 @app.command()
 def eval(
     suite_path: Path = typer.Argument(
         ..., help="Path to the YAML test suite file", exists=True
     ),
     backend: str = typer.Option(
-        "mock", "--backend", "-b", help="Backend to use: mock or openai"
+        "mock", "--backend", "-b", help="Backend to use: mock, openai, anthropic, huggingface, litellm"
     ),
     output: Path | None = typer.Option(
         None, "--output", "-o", help="Output directory for reports"
@@ -52,6 +67,12 @@ def eval(
     ),
     from_hf: str | None = typer.Option(
         None, "--from-hf", help="HuggingFace dataset name to convert and evaluate"
+    ),
+    save: bool = typer.Option(
+        True, "--save/--no-save", help="Save the evaluation run to the history database"
+    ),
+    db_path: str | None = typer.Option(
+        None, "--db", help="SQLite history DB path to save to"
     ),
 ) -> None:
     """Run an evaluation suite against an AI backend.
@@ -93,10 +114,25 @@ def eval(
     console.print(f"Suite: [bold]{suite.name}[/bold]")
     console.print(f"Test cases: {len(suite.test_cases)}")
 
-    backend_instance: BaseBackend = MockBackend()
-    if backend == "openai":
+    backend_instance: BaseBackend
+    if backend == "mock":
+        from evalforge.backends.mock import MockBackend
+        backend_instance = MockBackend()
+    elif backend == "openai":
         from evalforge.backends.openai_compatible import OpenAICompatibleBackend
         backend_instance = OpenAICompatibleBackend()
+    elif backend == "anthropic":
+        from evalforge.backends.anthropic import AnthropicBackend
+        backend_instance = AnthropicBackend()
+    elif backend == "huggingface":
+        from evalforge.backends.huggingface import HuggingFaceBackend
+        backend_instance = HuggingFaceBackend()
+    elif backend == "litellm":
+        from evalforge.backends.litellm import LiteLLMBackend
+        backend_instance = LiteLLMBackend()
+    else:
+        console.print(f"[red]Unsupported backend: {backend}[/red]")
+        raise typer.Exit(code=1)
 
     runner = RAGRunner(backend=backend_instance)
     results: list[TestResult] = _run_async(runner.run_suite(suite))
@@ -120,6 +156,16 @@ def eval(
         results=results,
         metadata={"backend": backend, "suite_path": str(suite_path)},
     )
+
+    if save:
+        try:
+            from evalforge.storage.history import HistoryStore
+            actual_db = get_db_path(db_path)
+            store = HistoryStore(actual_db)
+            store.save_run(report.model_dump(mode="json"))
+            console.print(f"[green]Saved run to history database:[/green] {actual_db}")
+        except Exception as e:
+            console.print(f"[yellow]Could not save run to history database: {e}[/yellow]")
 
     reporters: dict[str, BaseReporter] = {
         "markdown": MarkdownReporter(),
@@ -463,6 +509,16 @@ def schedule(
     sched = SimpleScheduler()
     sched.add_job(_run_eval, trigger="interval", minutes=interval_minutes)
     console.print(f"[green]Scheduled '{suite_path}' every {interval_minutes} minutes[/green]")
+
+    if sched._scheduler is not None:
+        console.print("Press Ctrl+C to exit.")
+        import time
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Shutting down scheduler...[/yellow]")
+            sched.shutdown()
 
 
 @app.command()

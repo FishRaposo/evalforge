@@ -103,7 +103,7 @@ class GitHubPRReporter:
 
         # Summary
         summary = report.get('summary', {})
-        total = summary.get('total_tests', 0)
+        total = summary.get('total', summary.get('total_tests', 0))
         passed = summary.get('passed', 0)
         failed = summary.get('failed', 0)
 

@@ -148,3 +148,28 @@ EvalForge supports multiple test types, each with a corresponding judge that eva
 ```
 
 **Scoring**: Ratio of required fields present in the parsed response.
+
+---
+
+## llm_judge (Custom / Pluggable)
+
+**Purpose**: Evaluate response quality using a LLM-as-a-judge with structured criteria.
+
+**Judge**: `LLMJudge`
+
+**Description**:
+The LLM judge evaluates responses using configurable criteria (e.g., accuracy, completeness, clarity, relevance). It parses the model's score (1-10) and reasoning.
+
+- **Offline-first (Simulation Mode)**: When no API keys are configured, it runs in simulated mode using `SimulatedEvaluator`, yielding deterministic and repeatable scores.
+- **Real Mode**: Calls OpenAI or Anthropic endpoints to evaluate the response based on the query and reference context.
+
+**Example Criteria**:
+```
+Evaluate the response based on:
+1. Accuracy: Is the information correct?
+2. Completeness: Does it answer all parts of the question?
+3. Clarity: Is it well-structured and easy to understand?
+4. Relevance: Does it stay on topic?
+
+Provide a score from 1-10 and brief justification.
+```
