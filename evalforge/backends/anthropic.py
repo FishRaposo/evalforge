@@ -15,22 +15,31 @@ class AnthropicBackend(BaseBackend):
     Offline-first: returns simulated responses when no API key is set.
     """
 
-    def __init__(self, api_key: str | None = None, model: str = "claude-3-haiku-20240307") -> None:
+    def __init__(
+        self, api_key: str | None = None, model: str = "claude-3-haiku-20240307"
+    ) -> None:
         self._api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self._model = model
         self._client: Any | None = None
 
-    async def query(self, prompt: str, context: dict[str, Any] | None = None) -> BackendResponse:
+    async def query(
+        self, prompt: str, context: dict[str, Any] | None = None
+    ) -> BackendResponse:
         if not self._api_key:
             sim = SimulatedEvaluator(seed=hash(prompt) % 2**31)
             result = sim.evaluate(prompt)
             return BackendResponse(
                 content=result["reasoning"],
-                metadata={"method": "simulated", "model": self._model, "tokens_used": 0},
+                metadata={
+                    "method": "simulated",
+                    "model": self._model,
+                    "tokens_used": 0,
+                },
             )
 
         if self._client is None:
             import anthropic
+
             self._client = anthropic.AsyncAnthropic(api_key=self._api_key)
 
         messages = [{"role": "user", "content": prompt}]
@@ -51,8 +60,12 @@ class AnthropicBackend(BaseBackend):
             metadata={
                 "model": self._model,
                 "usage": {
-                    "input_tokens": response.usage.input_tokens if response.usage else 0,
-                    "output_tokens": response.usage.output_tokens if response.usage else 0,
+                    "input_tokens": response.usage.input_tokens
+                    if response.usage
+                    else 0,
+                    "output_tokens": response.usage.output_tokens
+                    if response.usage
+                    else 0,
                 },
                 "tokens_used": tokens_used,
             },

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from evalforge.judges.base import BaseJudge, JudgeResult
-from evalforge.models.test_case import TestCase
+from evalforge.models.test_case import TestCase, TestCaseType
 
 
 class CustomJudge(BaseJudge):
@@ -54,7 +54,7 @@ def load_judge_from_module(
         raise AttributeError(f"Module {module_path} must define a 'judge' function")
 
     name = judge_name or path.stem
-    return CustomJudge(getattr(module, "judge"), name=name)
+    return CustomJudge(module.judge, name=name)
 
 
 def discover_plugins(directory: str) -> list[tuple[str, CustomJudge]]:
@@ -110,11 +110,52 @@ def validate_plugin(module_path: str) -> list[str]:
     if not hasattr(module, "judge"):
         errors.append("Module must define a 'judge(test_case, response)' function")
     else:
-        func = getattr(module, "judge")
+        func = module.judge
         import inspect
+
         sig = inspect.signature(func)
         params = list(sig.parameters.keys())
         if len(params) < 2:
             errors.append("'judge' function must accept at least 2 arguments")
 
     return errors
+
+
+def resolve_judge_override(
+    module_path: str,
+    judge_type: str | TestCaseType,
+    judge_name: str | None = None,
+) -> tuple[TestCaseType, CustomJudge]:
+    """Load a custom judge and bind it to a test-case type.
+
+    This finishes the plugin loader by turning a plugin file into a usable
+    ``(TestCaseType, CustomJudge)`` override that a runner can apply for the
+    given evaluation type — without mutating the global judge registry.
+
+    Args:
+        module_path: Path to the Python module defining ``judge``.
+        judge_type: The :class:`TestCaseType` (or its string value) the custom
+            judge should handle, e.g. ``"semantic_answer"``.
+        judge_name: Optional friendly name for the loaded judge.
+
+    Returns:
+        A ``(TestCaseType, CustomJudge)`` tuple ready to pass to a runner.
+
+    Raises:
+        ValueError: If ``judge_type`` is not a recognised test-case type.
+        FileNotFoundError: If the module does not exist.
+        AttributeError: If the module lacks a ``judge`` function.
+    """
+    if isinstance(judge_type, TestCaseType):
+        resolved_type = judge_type
+    else:
+        try:
+            resolved_type = TestCaseType(judge_type)
+        except ValueError as exc:
+            valid = ", ".join(t.value for t in TestCaseType)
+            raise ValueError(
+                f"Unknown judge type '{judge_type}'. Valid types: {valid}"
+            ) from exc
+
+    judge = load_judge_from_module(module_path, judge_name=judge_name)
+    return resolved_type, judge

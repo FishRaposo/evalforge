@@ -21,23 +21,34 @@ class LiteLLMBackend(BaseBackend):
         model: str = "gpt-3.5-turbo",
         base_url: str | None = None,
     ) -> None:
-        self._api_key = api_key or os.getenv("LITELLM_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self._api_key = (
+            api_key or os.getenv("LITELLM_API_KEY") or os.getenv("OPENAI_API_KEY")
+        )
         self._model = model
         self._base_url = base_url or os.getenv("LITELLM_BASE_URL")
         self._client: Any | None = None
 
-    async def query(self, prompt: str, context: dict[str, Any] | None = None) -> BackendResponse:
+    async def query(
+        self, prompt: str, context: dict[str, Any] | None = None
+    ) -> BackendResponse:
         if not self._api_key:
             sim = SimulatedEvaluator(seed=hash(prompt) % 2**31)
             result = sim.evaluate(prompt)
             return BackendResponse(
                 content=result["reasoning"],
-                metadata={"method": "simulated", "model": self._model, "tokens_used": 0},
+                metadata={
+                    "method": "simulated",
+                    "model": self._model,
+                    "tokens_used": 0,
+                },
             )
 
         if self._client is None:
             import openai
-            self._client = openai.AsyncOpenAI(api_key=self._api_key, base_url=self._base_url)
+
+            self._client = openai.AsyncOpenAI(
+                api_key=self._api_key, base_url=self._base_url
+            )
 
         messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
         if context and "history" in context:

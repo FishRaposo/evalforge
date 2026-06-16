@@ -69,12 +69,17 @@ class SuiteLoader:
             seen_ids.add(tc.id)
 
             types_requiring_expected = {
-                "exact_answer", "semantic_answer", "must_cite",
-                "must_retrieve", "forbidden_content", "structured_output",
+                "exact_answer",
+                "semantic_answer",
+                "must_cite",
+                "must_retrieve",
+                "forbidden_content",
+                "structured_output",
             }
             if tc.type.value in types_requiring_expected and tc.expected is None:
                 errors.append(
-                    f"Test case '{tc.id}' of type '{tc.type.value}' requires an expected value"
+                    f"Test case '{tc.id}' of type '{tc.type.value}' "
+                    f"requires an expected value"
                 )
 
         return errors
@@ -102,9 +107,7 @@ class SuiteLoader:
 
         return data
 
-    def _resolve_includes(
-        self, data: dict[str, Any], base_dir: Path
-    ) -> dict[str, Any]:
+    def _resolve_includes(self, data: dict[str, Any], base_dir: Path) -> dict[str, Any]:
         """Resolve include directives in the suite data.
 
         If the data contains an 'includes' key with a list of file paths,

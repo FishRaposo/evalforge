@@ -23,7 +23,9 @@ class SemanticMatchJudge(BaseJudge):
 
     def __init__(self, threshold: float | None = None) -> None:
         settings = get_settings()
-        self._threshold = threshold if threshold is not None else settings.SIMILARITY_THRESHOLD
+        self._threshold = (
+            threshold if threshold is not None else settings.SIMILARITY_THRESHOLD
+        )
         self._cache: dict[str, list[float]] = {}
         self._client: Any = None
 
@@ -101,7 +103,7 @@ class SemanticMatchJudge(BaseJudge):
 
     @staticmethod
     def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
-        dot = sum(a * b for a, b in zip(vec_a, vec_b))
+        dot = sum(a * b for a, b in zip(vec_a, vec_b, strict=False))
         mag_a = math.sqrt(sum(a * a for a in vec_a))
         mag_b = math.sqrt(sum(b * b for b in vec_b))
         if mag_a == 0.0 or mag_b == 0.0:

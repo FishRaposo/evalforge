@@ -66,7 +66,7 @@ class BaseRunner(ABC):
         outcomes = await asyncio.gather(*tasks, return_exceptions=True)
 
         results: list[TestResult] = []
-        for test_case, outcome in zip(suite.test_cases, outcomes):
+        for test_case, outcome in zip(suite.test_cases, outcomes, strict=False):
             if isinstance(outcome, TestResult):
                 results.append(outcome)
             elif isinstance(outcome, Exception):

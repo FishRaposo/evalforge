@@ -39,7 +39,10 @@ class MockBackend(BaseBackend):
             self._load_responses(responses_file)
         else:
             default_file = (
-                Path(__file__).parent.parent.parent / "data" / "sample" / "mock_responses.json"
+                Path(__file__).parent.parent.parent
+                / "data"
+                / "sample"
+                / "mock_responses.json"
             )
             if default_file.exists():
                 self._load_responses(default_file)
@@ -99,11 +102,11 @@ class MockBackend(BaseBackend):
                 data = json.load(f)
 
             if isinstance(data, dict):
-                self._responses = {
-                    k: str(v) for k, v in data.items()
-                }
+                self._responses = {k: str(v) for k, v in data.items()}
         except (json.JSONDecodeError, OSError) as exc:
-            raise ValueError(f"Failed to load mock responses from {path}: {exc}") from exc
+            raise ValueError(
+                f"Failed to load mock responses from {path}: {exc}"
+            ) from exc
 
     def add_response(self, pattern: str, response: str) -> None:
         """Add a mock response pattern programmatically.

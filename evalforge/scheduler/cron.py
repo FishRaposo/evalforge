@@ -24,10 +24,13 @@ class SimpleScheduler:
         self._scheduler: Any | None = None
         try:
             from apscheduler.schedulers.background import BackgroundScheduler
+
             self._scheduler = BackgroundScheduler()
             self._scheduler.start()
         except ImportError:
-            logger.warning("apscheduler not installed; scheduled jobs will run immediately")
+            logger.warning(
+                "apscheduler not installed; scheduled jobs will run immediately"
+            )
 
     def add_job(
         self,

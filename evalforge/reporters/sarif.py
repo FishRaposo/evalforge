@@ -26,20 +26,23 @@ class SARIFReporter:
         results: list[dict[str, Any]] = []
         for r in report.results:
             if not r.passed:
-                results.append({
-                    "ruleId": "evalforge/failed-test",
-                    "message": {
-                        "text": r.error or f"Test {r.test_case_id} failed with score {r.score:.2f}",
-                    },
-                    "locations": [
-                        {
-                            "physicalLocation": {
-                                "artifactLocation": {"uri": "suite.yaml"},
-                                "region": {"startLine": 1},
+                results.append(
+                    {
+                        "ruleId": "evalforge/failed-test",
+                        "message": {
+                            "text": r.error
+                            or f"Test {r.test_case_id} failed with score {r.score:.2f}",
+                        },
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": "suite.yaml"},
+                                    "region": {"startLine": 1},
+                                }
                             }
-                        }
-                    ],
-                })
+                        ],
+                    }
+                )
 
         return {
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
@@ -68,6 +71,7 @@ class SARIFReporter:
             The output file path.
         """
         import json
+
         data = self.generate(report)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)

@@ -54,12 +54,12 @@ class HuggingFaceDatasetLoader:
         if self._datasets is None:
             try:
                 import datasets
+
                 self._datasets = datasets
             except ImportError:
                 raise ImportError(
-                    "datasets library required. "
-                    "Install with: pip install datasets"
-                )
+                    "datasets library required. Install with: pip install datasets"
+                ) from None
         return self._datasets
 
     async def load_dataset(
@@ -142,7 +142,9 @@ class HuggingFaceDatasetLoader:
         if c_col and c_col in item:
             context = item[c_col]
             if isinstance(context, list):
-                example["expected_citations"] = [c.get("text", str(c)) for c in context[:5]]
+                example["expected_citations"] = [
+                    c.get("text", str(c)) for c in context[:5]
+                ]
             elif isinstance(context, str):
                 example["expected_citations"] = [context]
 
@@ -178,14 +180,16 @@ class HuggingFaceDatasetLoader:
         }
 
         for i, ex in enumerate(examples):
-            suite["test_cases"].append({
-                "id": f"{dataset_name}_{i:04d}",
-                "name": f"test_{i}",
-                "type": "semantic_answer",
-                "input": ex["query"],
-                "expected": ex["expected_answer"],
-                "tags": ["hf", dataset_name],
-            })
+            suite["test_cases"].append(
+                {
+                    "id": f"{dataset_name}_{i:04d}",
+                    "name": f"test_{i}",
+                    "type": "semantic_answer",
+                    "input": ex["query"],
+                    "expected": ex["expected_answer"],
+                    "tags": ["hf", dataset_name],
+                }
+            )
 
         with open(output_path, "w", encoding="utf-8") as f:
             yaml.dump(suite, f, default_flow_style=False, sort_keys=False)

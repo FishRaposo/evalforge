@@ -22,13 +22,19 @@ class TestHuggingFaceDatasetLoader:
         assert isinstance(datasets, list)
         assert "natural_questions" in datasets
 
-    def test_create_test_suite(self, loader: HuggingFaceDatasetLoader, tmp_path: Path) -> None:
+    def test_create_test_suite(
+        self, loader: HuggingFaceDatasetLoader, tmp_path: Path
+    ) -> None:
         # Use mock mode to avoid real HF download
         import os
+
         os.environ["EVALFORGE_LLM_MODE"] = "sim"
         output = tmp_path / "hf_suite.yaml"
         import asyncio
-        asyncio.run(loader.create_test_suite("natural_questions", str(output), max_samples=2))
+
+        asyncio.run(
+            loader.create_test_suite("natural_questions", str(output), max_samples=2)
+        )
         assert output.exists()
         suite = SuiteLoader().load_suite(output)
         assert suite.name == "natural_questions_benchmark"

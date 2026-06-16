@@ -17,11 +17,12 @@ def _make_mock_backend() -> tuple[BaseBackend, AsyncMock]:
 
 
 class TestCachingBackend:
-
     @pytest.mark.asyncio
     async def test_cache_miss_delegates_to_backend(self) -> None:
         mock_backend, mock_query = _make_mock_backend()
-        mock_query.query = AsyncMock(return_value=BackendResponse(content="hello world", metadata={}))
+        mock_query.query = AsyncMock(
+            return_value=BackendResponse(content="hello world", metadata={})
+        )
 
         caching = CachingBackend(wrapped=mock_backend, max_size=100)
 
@@ -33,7 +34,9 @@ class TestCachingBackend:
     @pytest.mark.asyncio
     async def test_cache_hit_returns_cached_response(self) -> None:
         mock_backend, _ = _make_mock_backend()
-        mock_backend.query = AsyncMock(return_value=BackendResponse(content="cached result", metadata={}))
+        mock_backend.query = AsyncMock(
+            return_value=BackendResponse(content="cached result", metadata={})
+        )
 
         caching = CachingBackend(wrapped=mock_backend, max_size=100)
 
@@ -45,7 +48,9 @@ class TestCachingBackend:
     @pytest.mark.asyncio
     async def test_cache_clear(self) -> None:
         mock_backend, _ = _make_mock_backend()
-        mock_backend.query = AsyncMock(return_value=BackendResponse(content="result", metadata={}))
+        mock_backend.query = AsyncMock(
+            return_value=BackendResponse(content="result", metadata={})
+        )
 
         caching = CachingBackend(wrapped=mock_backend, max_size=100)
 

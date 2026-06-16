@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from datetime import datetime
 from pathlib import Path
 
@@ -58,8 +59,8 @@ class HtmlReporter(BaseReporter):
             status_text = "PASS" if result.passed else "FAIL"
             rows_html += f"""
             <tr>
-                <td>{result.test_case_id}</td>
-                <td>{result.test_case_name}</td>
+                <td>{html.escape(str(result.test_case_id))}</td>
+                <td>{html.escape(str(result.test_case_name))}</td>
                 <td class="{status_class}">{status_text}</td>
                 <td>{result.score:.2f}</td>
                 <td>{result.execution_time_ms:.0f}</td>
@@ -75,21 +76,25 @@ class HtmlReporter(BaseReporter):
                     response_text = result.actual_response
                 failed_rows += f"""
             <div class="failed-test">
-                <h3>{result.test_case_id}: {result.test_case_name}</h3>
+                <h3>{html.escape(str(result.test_case_id))}: """
+                f"""{html.escape(str(result.test_case_name))}</h3>
                 <p><strong>Score:</strong> {result.score:.2f}</p>
-                <p><strong>Error:</strong> {error_text}</p>
-                <p><strong>Response:</strong> {response_text}</p>
+                <p><strong>Error:</strong> {html.escape(str(error_text))}</p>
+                <p><strong>Response:</strong> """
+                f"""{html.escape(str(response_text))}</p>
             </div>"""
 
-        return f"""<!DOCTYPE html>
+        return (
+            f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvalForge Report: {report.suite_name}</title>
+    <title>EvalForge Report: {html.escape(str(report.suite_name))}</title>
     <style>
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, """
+            f"""'Segoe UI', Roboto, sans-serif;
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
@@ -145,8 +150,8 @@ class HtmlReporter(BaseReporter):
     </style>
 </head>
 <body>
-    <h1>EvalForge Report: {report.suite_name}</h1>
-    <p class="metadata">Generated: {report.timestamp.strftime('%Y-%m-%d %H:%M:%S')}</p>
+    <h1>EvalForge Report: {html.escape(str(report.suite_name))}</h1>
+    <p class="metadata">Generated: {report.timestamp.strftime("%Y-%m-%d %H:%M:%S")}</p>
 
     <div class="summary-cards">
         <div class="card">
@@ -191,7 +196,14 @@ class HtmlReporter(BaseReporter):
 
     <h2>Metadata</h2>
     <ul>
-        {" ".join(f'<li><strong>{k}</strong>: {v}</li>' for k, v in report.metadata.items())}
+        {
+                " ".join(
+                    f"<li><strong>{html.escape(str(k))}</strong>: "
+                    f"{html.escape(str(v))}</li>"
+                    for k, v in report.metadata.items()
+                )
+            }
     </ul>
 </body>
 </html>"""
+        )

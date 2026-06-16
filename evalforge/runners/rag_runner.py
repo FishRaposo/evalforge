@@ -21,18 +21,30 @@ class RAGRunner(BaseRunner):
 
     Args:
         backend: The AI backend to use for queries.
+        judge_overrides: Optional mapping of test-case types to judge instances
+            that replace the default judges (e.g. custom plugin judges). This
+            keeps the global judge registry untouched so overrides are scoped to
+            a single runner.
     """
 
-    def __init__(self, backend: BaseBackend) -> None:
+    def __init__(
+        self,
+        backend: BaseBackend,
+        judge_overrides: dict[TestCaseType, BaseJudge] | None = None,
+    ) -> None:
         """Initialize the RAG runner.
 
         Args:
             backend: The backend instance for making AI queries.
+            judge_overrides: Optional per-type judge overrides applied on top of
+                the default registry mapping.
         """
         super().__init__(backend)
         self._judges: dict[TestCaseType, BaseJudge] = {
             tt: judge_cls() for tt, judge_cls in _JUDGE_MAP.items()
         }
+        if judge_overrides:
+            self._judges.update(judge_overrides)
 
     async def run(self, test_case: TestCase) -> TestResult:
         """Execute a single RAG test case.

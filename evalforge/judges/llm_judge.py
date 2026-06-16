@@ -66,10 +66,18 @@ class LLMJudge(BaseJudge):
         if mode == "sim":
             sim = SimulatedEvaluator(seed=hash(test_case.id) % 2**31)
             result = sim.evaluate(f"{query}\n{response}")
+            score = result.get("score", 0.0)
         else:
             result = self._evaluate_sync(query, response, context)
+            # Real mode parses scores on a 1-10 scale; normalize to 0-1.
+            raw = result.get("score", 5.0)
+            score = max(0.0, min(raw / 10.0, 1.0))
+            criteria_scores = result.get("criteria_scores")
+            if isinstance(criteria_scores, dict):
+                result["criteria_scores"] = {
+                    k: max(0.0, min(v / 10.0, 1.0)) for k, v in criteria_scores.items()
+                }
 
-        score = result.get("score", 0.0)
         passed = score >= 0.7
         return JudgeResult(
             passed=passed,
@@ -92,13 +100,17 @@ Provide a score from 1-10 and brief justification."""
         if self._client is None:
             if "claude" in self.model.lower():
                 import anthropic
+
                 self._client = anthropic.Anthropic(api_key=self.api_key)
             else:
                 from openai import OpenAI
+
                 self._client = OpenAI(api_key=self.api_key)
         return self._client
 
-    def _build_prompt(self, query: str, response: str, context: Any | None = None) -> str:
+    def _build_prompt(
+        self, query: str, response: str, context: Any | None = None
+    ) -> str:
         """Build evaluation prompt for the LLM judge.
 
         Args:
@@ -200,7 +212,7 @@ Provide a score from 1-10 and brief justification."""
         content = response.content[0].text if response.content else ""
         return self._parse_evaluation(content)
 
-    def _parse_evaluation(self, content: str) -> dict[str, Any]:
+    def _parse_evaluation(self, content: str) -> dict[str, Any]:  # noqa: C901
         """Parse LLM evaluation response.
 
         Args:
@@ -233,22 +245,30 @@ Provide a score from 1-10 and brief justification."""
             # Extract criteria scores
             elif "accuracy:" in line.lower():
                 try:
-                    result["criteria_scores"]["accuracy"] = float(line.split(":")[1].strip())
+                    result["criteria_scores"]["accuracy"] = float(
+                        line.split(":")[1].strip()
+                    )
                 except (ValueError, IndexError):
                     pass
             elif "completeness:" in line.lower():
                 try:
-                    result["criteria_scores"]["completeness"] = float(line.split(":")[1].strip())
+                    result["criteria_scores"]["completeness"] = float(
+                        line.split(":")[1].strip()
+                    )
                 except (ValueError, IndexError):
                     pass
             elif "clarity:" in line.lower():
                 try:
-                    result["criteria_scores"]["clarity"] = float(line.split(":")[1].strip())
+                    result["criteria_scores"]["clarity"] = float(
+                        line.split(":")[1].strip()
+                    )
                 except (ValueError, IndexError):
                     pass
             elif "relevance:" in line.lower():
                 try:
-                    result["criteria_scores"]["relevance"] = float(line.split(":")[1].strip())
+                    result["criteria_scores"]["relevance"] = float(
+                        line.split(":")[1].strip()
+                    )
                 except (ValueError, IndexError):
                     pass
 
@@ -261,7 +281,9 @@ class EnsembleJudge(BaseJudge):
     Combines multiple judges for more robust evaluation.
     """
 
-    def __init__(self, judges: list[BaseJudge], weights: list[float] | None = None) -> None:
+    def __init__(
+        self, judges: list[BaseJudge], weights: list[float] | None = None
+    ) -> None:
         """Initialize ensemble judge.
 
         Args:
@@ -287,10 +309,16 @@ class EnsembleJudge(BaseJudge):
                 result = judge.judge(test_case, response)
                 results.append(result)
             except Exception as exc:
-                results.append(JudgeResult(passed=False, score=0.0, details={"error": str(exc)}))
+                results.append(
+                    JudgeResult(passed=False, score=0.0, details={"error": str(exc)})
+                )
 
         # Weighted average of scores
-        valid = [(r, w) for r, w in zip(results, self.weights) if "error" not in r.details]
+        valid = [
+            (r, w)
+            for r, w in zip(results, self.weights, strict=False)
+            if "error" not in r.details
+        ]
         if not valid:
             return JudgeResult(
                 passed=False,
@@ -313,7 +341,11 @@ class EnsembleJudge(BaseJudge):
             score=round(weighted_score, 3),
             details={
                 "variance": round(variance, 3),
-                "agreement": "high" if variance < 0.2 else "medium" if variance < 0.4 else "low",
+                "agreement": "high"
+                if variance < 0.2
+                else "medium"
+                if variance < 0.4
+                else "low",
                 "individual_results": [r.details for r in results],
                 "method": "ensemble",
             },

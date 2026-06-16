@@ -1,73 +1,57 @@
-PYTHON			:= python
-PIP				:= pip
+PYTHON := python
 
-.PHONY: help demo install test lint format clean setup benchmark eval-basic eval-citation eval-compliance eval-all serve build-frontend test-e2e
+.PHONY: install dev test lint format typecheck demo serve docker-up docker-down clean \
+        help eval-basic eval-citation eval-compliance eval-all build-frontend test-e2e
 
-help:
-	@echo "EvalForge - Available targets:"
-	@echo ""
-	@echo "  demo             Quick demo: run evaluation suite with mock backend"
-	@echo "  install          Install package with dev dependencies"
-	@echo "  test             Run pytest with coverage"
-	@echo "  lint             Run ruff check + mypy"
-	@echo "  format           Run ruff format"
-	@echo "  clean            Remove build artifacts and caches"
-	@echo "  setup            First-time setup (install + verify)"
-	@echo "  serve            Start the EvalForge API server"
-	@echo "  build-frontend   Build the Next.js dashboard"
-	@echo "  test-e2e         Run Playwright E2E tests"
-	@echo "  eval-basic       Run rag_basic example suite"
-	@echo "  eval-citation    Run rag_citation example suite"
-	@echo "  eval-compliance  Run compliance example suite"
-	@echo "  eval-all         Run all example suites"
+install: ## Install shared-core and EvalForge (dev + server + llm extras)
+	pip install -e ../shared-core
+	pip install -e ".[dev,server,llm]"
 
-install:
-	$(PIP) install -e ".[dev]"
+dev: serve ## Alias for `serve` (start the history API)
 
-test:
-	$(PYTHON) -m pytest --cov=evalforge --cov-report=term-missing -v
+test: ## Run the test suite
+	$(PYTHON) -m pytest -q
 
-lint:
-	ruff check . && mypy evalforge
+lint: ## Lint with ruff
+	ruff check evalforge tests scripts
 
-format:
-	ruff format .
+format: ## Format with ruff
+	ruff format evalforge tests scripts
 
-clean:
-	$(PYTHON) -c "import shutil, glob; dirs = glob.glob('**/__pycache__', recursive=True) + glob.glob('**/.pytest_cache', recursive=True) + glob.glob('**/*.egg-info', recursive=True); [shutil.rmtree(d) for d in dirs if __import__('pathlib').Path(d).exists()]"
-	$(PYTHON) -c "import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('.coverage')]"
-	rm -rf reports/
+typecheck: ## Type-check with pyright
+	pyright evalforge
 
-setup: install test
+demo: ## Run the offline mock-backend evaluation demo
+	$(PYTHON) examples/run_demo.py
 
-benchmark:
-	$(PYTHON) scripts/benchmark.py
-
-demo:
-	@echo "🚀 Running EvalForge demo..."
-	@mkdir -p reports
-	@echo "📊 Executing RAG evaluation suite..."
-	$(PYTHON) -m evalforge eval example_suites/rag_basic.yaml --backend mock --format markdown -o reports/demo_report.md
-	@echo "✅ Demo complete! Report saved to: reports/demo_report.md"
-	@echo ""
-	@echo "View report: cat reports/demo_report.md"
-
-eval-basic:
-	evalforge eval example_suites/rag_basic.yaml --format markdown
-
-eval-citation:
-	evalforge eval example_suites/rag_citation.yaml --format json
-
-eval-compliance:
-	evalforge eval example_suites/compliance.yaml --format html
-
-eval-all: eval-basic eval-citation eval-compliance
-
-serve:
+serve: ## Start the EvalForge history API
 	evalforge serve
 
-build-frontend:
+docker-up: ## Start optional Postgres + Redis infra
+	docker compose up -d
+
+docker-down: ## Stop containers
+	docker compose down
+
+eval-basic: ## Run the rag_basic example suite
+	evalforge eval example_suites/rag_basic.yaml --format markdown
+
+eval-citation: ## Run the rag_citation example suite
+	evalforge eval example_suites/rag_citation.yaml --format json
+
+eval-compliance: ## Run the compliance example suite
+	evalforge eval example_suites/compliance.yaml --format html
+
+eval-all: eval-basic eval-citation eval-compliance ## Run all example suites
+
+build-frontend: ## Build the Next.js dashboard
 	cd frontend && npm run build
 
-test-e2e:
+test-e2e: ## Run frontend Playwright E2E tests
 	cd frontend && npm run test:e2e
+
+clean: ## Remove caches
+	$(PYTHON) -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('.pytest_cache')]; shutil.rmtree('.ruff_cache', ignore_errors=True)"
+
+help: ## Show this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'

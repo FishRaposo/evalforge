@@ -81,6 +81,54 @@ evalforge eval example_suites/rag_basic.yaml
 evalforge eval example_suites/rag_basic.yaml --backend openai --format json --output ./reports
 ```
 
+## CLI commands
+
+| Command | What it does |
+|---------|--------------|
+| `evalforge eval <suite>` | Run a suite against a backend; writes a report and (by default) saves to history |
+| `evalforge eval <suite> --judge-plugin <file> --judge-plugin-type <type>` | Override a judge for one test-case type with a custom plugin |
+| `evalforge drift <baseline.json> <current.json>` | Compare two report files; exits non-zero on regression |
+| `evalforge baseline set <report> [--db <path>]` | Save a report as the baseline (file by default, history store with `--db`) |
+| `evalforge baseline compare <report> [--db <path>]` | Compare a report against the stored baseline |
+| `evalforge schedule <suite> --backend <b> [--db <path>]` | Run a suite on an interval, persisting each run to history |
+| `evalforge plugins list/validate --path <dir-or-file>` | Discover or validate custom judge plugins |
+| `evalforge workspace init/list/use <name>` | Manage per-project history databases |
+| `evalforge ci <suite>` | Run in CI mode (posts a PR comment when GitHub env vars are set) |
+| `evalforge serve` | Start the FastAPI history API for the dashboard |
+
+### Custom judge plugins
+
+Drop a Python file that defines a `judge(test_case, response)` function, validate it, then
+use it for a chosen test-case type — the global judge registry is never mutated, so the
+override is scoped to that one run:
+
+```bash
+evalforge plugins validate --path my_judge.py
+evalforge eval suite.yaml --judge-plugin my_judge.py --judge-plugin-type semantic_answer
+```
+
+### Baseline-gated regression checks
+
+```bash
+evalforge eval suite.yaml --format json --output ./reports        # produce a report
+evalforge baseline set ./reports/<report>.json --db history.db    # pin the baseline
+evalforge baseline compare ./reports/<new>.json --db history.db   # exits 1 on regression
+```
+
+## Dashboard
+
+A Next.js dashboard (`frontend/`) visualizes run history and run comparisons.
+
+```bash
+evalforge serve                 # history API on :8000
+cd frontend && npm install && npm run dev   # dashboard on :3002
+```
+
+The dashboard is **offline-first**: if the history API is unreachable it transparently
+falls back to deterministic **demo-mode** data and shows a banner, so the UI is always
+usable. It includes loading / empty / error states and an `ErrorBoundary`. Tests run with
+`npm test` (vitest component tests) and `npm run test:e2e` (Playwright).
+
 ## Example workflow
 
 Define a test suite in YAML:
@@ -188,12 +236,19 @@ evalforge eval suite.yaml --fail-threshold 0.8
 
 ## Roadmap
 
-- **Custom judges**: Plugin system for domain-specific evaluation
-- **A/B testing**: Compare two model versions side by side
-- **Drift detection**: Statistical analysis of quality trends over time
-- **HTML dashboard**: Interactive report visualization
+Delivered:
+
+- ✅ **Custom judges**: plugin loader wired end-to-end into `evalforge eval`
+- ✅ **A/B / drift**: `evalforge drift` and `evalforge baseline compare` (file or history-backed)
+- ✅ **Scheduled evals**: `evalforge schedule` persists runs to history
+- ✅ **Dashboard**: Next.js report visualization with offline demo-mode
+
+Planned:
+
 - **Multi-model comparison**: Evaluate across providers simultaneously
 - **Prompt versioning**: Track which prompts produced which results
+- **Convergence onto `shared_core`** (golden-output-gated — see
+  [docs/roadmap.md](docs/roadmap.md))
 
 ## What this project demonstrates
 

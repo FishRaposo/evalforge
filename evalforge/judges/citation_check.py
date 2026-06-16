@@ -87,9 +87,7 @@ class CitationCheckJudge(BaseJudge):
 
         return citations
 
-    def _match_source(
-        self, source: str, citations: list[str], response: str
-    ) -> bool:
+    def _match_source(self, source: str, citations: list[str], response: str) -> bool:
         """Check if a source is referenced in the response.
 
         Uses both citation list matching and direct text search

@@ -60,9 +60,7 @@ class AgentRunner(BaseRunner):
 
             for turn_idx in range(self._max_turns):
                 if turn_idx == 0:
-                    conversation.append(
-                        {"role": "user", "content": test_case.input}
-                    )
+                    conversation.append({"role": "user", "content": test_case.input})
                     prompt = test_case.input
                     context: dict[str, Any] | None = None
                 else:
@@ -78,9 +76,7 @@ class AgentRunner(BaseRunner):
                 if not parsed_calls:
                     break
 
-                conversation.append(
-                    {"role": "assistant", "content": response.content}
-                )
+                conversation.append({"role": "assistant", "content": response.content})
 
         except Exception as exc:
             elapsed = (time.monotonic() - start) * 1000
@@ -97,8 +93,7 @@ class AgentRunner(BaseRunner):
 
         expected_tools = test_case.metadata.get("expected_tools", [])
         tools_correct = all(
-            any(t.get("name") == exp for t in tool_calls_made)
-            for exp in expected_tools
+            any(t.get("name") == exp for t in tool_calls_made) for exp in expected_tools
         )
 
         if test_case.expected is not None:

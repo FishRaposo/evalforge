@@ -45,9 +45,7 @@ def configure_logging(level: str | None = None) -> None:
     handler = logging.StreamHandler(sys.stdout)
     if _is_dev():
         handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-            )
+            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
         )
     else:
         handler.setFormatter(_JSONFormatter())

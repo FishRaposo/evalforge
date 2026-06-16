@@ -55,6 +55,34 @@ class TestHistoryStore:
         # Nonexistent run
         assert store.get_run(9999) is None
 
+    def test_save_run_backend_falls_back_to_metadata(self, db_path: str) -> None:
+        """CLI stores backend under metadata.backend; save_run falls back to it."""
+        store = HistoryStore(db_path)
+        report = {
+            "suite_name": "cli_suite",
+            # No top-level "backend" key (mirrors CLI-saved runs).
+            "metadata": {"backend": "anthropic"},
+            "summary": {"total": 1, "passed": 1, "failed": 0},
+        }
+        store.save_run(report)
+
+        runs = store.get_runs(suite_name="cli_suite")
+        assert len(runs) == 1
+        assert runs[0]["backend"] == "anthropic"
+
+    def test_save_run_prefers_top_level_backend(self, db_path: str) -> None:
+        """Top-level backend wins over metadata.backend when both are present."""
+        store = HistoryStore(db_path)
+        report = {
+            "suite_name": "top_suite",
+            "backend": "mock",
+            "metadata": {"backend": "anthropic"},
+            "summary": {"total": 1},
+        }
+        store.save_run(report)
+        runs = store.get_runs(suite_name="top_suite")
+        assert runs[0]["backend"] == "mock"
+
     def test_get_runs_with_suite_filter(self, db_path: str) -> None:
         store = HistoryStore(db_path)
         store.save_run({"suite_name": "suite_a", "summary": {"total": 1}})

@@ -36,7 +36,8 @@ class TestEvalCommand:
             encoding="utf-8",
         )
         result = runner.invoke(
-            app, ["eval", str(suite_path), "--backend", "mock", "--fail-threshold", "0.99"]
+            app,
+            ["eval", str(suite_path), "--backend", "mock", "--fail-threshold", "0.99"],
         )
         # Mock backend default response won't match '4', so pass rate < 0.99
         assert result.exit_code == 1
@@ -79,25 +80,60 @@ class TestDriftCommand:
 
     def test_drift_detects_regression(self, tmp_path: Path) -> None:
         import json
+
         baseline = tmp_path / "baseline.json"
         current = tmp_path / "current.json"
         report = {
             "suite_name": "S",
             "timestamp": "2024-01-01T00:00:00",
-            "summary": {"total": 2, "passed": 2, "failed": 0, "skipped": 0, "pass_rate": 1.0, "avg_score": 0.9},
+            "summary": {
+                "total": 2,
+                "passed": 2,
+                "failed": 0,
+                "skipped": 0,
+                "pass_rate": 1.0,
+                "avg_score": 0.9,
+            },
             "results": [
-                {"test_case_id": "t1", "test_case_name": "A", "passed": True, "score": 0.9},
-                {"test_case_id": "t2", "test_case_name": "B", "passed": True, "score": 0.9},
+                {
+                    "test_case_id": "t1",
+                    "test_case_name": "A",
+                    "passed": True,
+                    "score": 0.9,
+                },
+                {
+                    "test_case_id": "t2",
+                    "test_case_name": "B",
+                    "passed": True,
+                    "score": 0.9,
+                },
             ],
         }
         baseline.write_text(json.dumps(report), encoding="utf-8")
         current_report = {
             "suite_name": "S",
             "timestamp": "2024-01-02T00:00:00",
-            "summary": {"total": 2, "passed": 1, "failed": 1, "skipped": 0, "pass_rate": 0.5, "avg_score": 0.5},
+            "summary": {
+                "total": 2,
+                "passed": 1,
+                "failed": 1,
+                "skipped": 0,
+                "pass_rate": 0.5,
+                "avg_score": 0.5,
+            },
             "results": [
-                {"test_case_id": "t1", "test_case_name": "A", "passed": False, "score": 0.3},
-                {"test_case_id": "t2", "test_case_name": "B", "passed": True, "score": 0.7},
+                {
+                    "test_case_id": "t1",
+                    "test_case_name": "A",
+                    "passed": False,
+                    "score": 0.3,
+                },
+                {
+                    "test_case_id": "t2",
+                    "test_case_name": "B",
+                    "passed": True,
+                    "score": 0.7,
+                },
             ],
         }
         current.write_text(json.dumps(current_report), encoding="utf-8")
@@ -107,25 +143,60 @@ class TestDriftCommand:
 
     def test_drift_no_regression(self, tmp_path: Path) -> None:
         import json
+
         baseline = tmp_path / "baseline.json"
         current = tmp_path / "current.json"
         report = {
             "suite_name": "S",
             "timestamp": "2024-01-01T00:00:00",
-            "summary": {"total": 2, "passed": 2, "failed": 0, "skipped": 0, "pass_rate": 1.0, "avg_score": 0.9},
+            "summary": {
+                "total": 2,
+                "passed": 2,
+                "failed": 0,
+                "skipped": 0,
+                "pass_rate": 1.0,
+                "avg_score": 0.9,
+            },
             "results": [
-                {"test_case_id": "t1", "test_case_name": "A", "passed": True, "score": 0.9},
-                {"test_case_id": "t2", "test_case_name": "B", "passed": True, "score": 0.9},
+                {
+                    "test_case_id": "t1",
+                    "test_case_name": "A",
+                    "passed": True,
+                    "score": 0.9,
+                },
+                {
+                    "test_case_id": "t2",
+                    "test_case_name": "B",
+                    "passed": True,
+                    "score": 0.9,
+                },
             ],
         }
         baseline.write_text(json.dumps(report), encoding="utf-8")
         current_report = {
             "suite_name": "S",
             "timestamp": "2024-01-02T00:00:00",
-            "summary": {"total": 2, "passed": 2, "failed": 0, "skipped": 0, "pass_rate": 1.0, "avg_score": 0.92},
+            "summary": {
+                "total": 2,
+                "passed": 2,
+                "failed": 0,
+                "skipped": 0,
+                "pass_rate": 1.0,
+                "avg_score": 0.92,
+            },
             "results": [
-                {"test_case_id": "t1", "test_case_name": "A", "passed": True, "score": 0.92},
-                {"test_case_id": "t2", "test_case_name": "B", "passed": True, "score": 0.92},
+                {
+                    "test_case_id": "t1",
+                    "test_case_name": "A",
+                    "passed": True,
+                    "score": 0.92,
+                },
+                {
+                    "test_case_id": "t2",
+                    "test_case_name": "B",
+                    "passed": True,
+                    "score": 0.92,
+                },
             ],
         }
         current.write_text(json.dumps(current_report), encoding="utf-8")

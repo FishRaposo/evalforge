@@ -14,7 +14,9 @@ from evalforge.reporters.markdown import MarkdownReporter
 class TestMarkdownReporter:
     """Tests for MarkdownReporter."""
 
-    def test_markdown_report_generation(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_markdown_report_generation(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """MarkdownReporter should generate a valid Markdown file."""
         reporter = MarkdownReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -27,7 +29,9 @@ class TestMarkdownReporter:
         assert "Summary" in content
         assert "Results" in content
 
-    def test_markdown_contains_summary_table(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_markdown_contains_summary_table(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """Markdown report should include summary statistics table."""
         reporter = MarkdownReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -38,7 +42,9 @@ class TestMarkdownReporter:
         assert "Failed" in content
         assert "Pass Rate" in content
 
-    def test_markdown_shows_failed_details(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_markdown_shows_failed_details(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """Markdown report should include details for failed tests."""
         reporter = MarkdownReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -50,7 +56,9 @@ class TestMarkdownReporter:
 class TestJsonReporter:
     """Tests for JsonReporter."""
 
-    def test_json_report_generation(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_json_report_generation(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """JsonReporter should generate a valid JSON file."""
         reporter = JsonReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -65,7 +73,9 @@ class TestJsonReporter:
         assert "summary" in data
         assert "results" in data
 
-    def test_json_report_structure(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_json_report_structure(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """JSON report should have correct structure matching Report model."""
         reporter = JsonReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -82,7 +92,9 @@ class TestJsonReporter:
 class TestHtmlReporter:
     """Tests for HtmlReporter."""
 
-    def test_html_report_generation(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_html_report_generation(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """HtmlReporter should generate a valid HTML file."""
         reporter = HtmlReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -94,7 +106,9 @@ class TestHtmlReporter:
         assert "<!DOCTYPE html>" in content
         assert sample_report.suite_name in content
 
-    def test_html_contains_styled_table(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_html_contains_styled_table(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """HTML report should include styled results table."""
         reporter = HtmlReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -105,7 +119,9 @@ class TestHtmlReporter:
         assert "FAIL" in content
         assert "style" in content.lower()
 
-    def test_html_shows_summary_cards(self, sample_report: Report, temp_output_dir: Path) -> None:
+    def test_html_shows_summary_cards(
+        self, sample_report: Report, temp_output_dir: Path
+    ) -> None:
         """HTML report should include summary card statistics."""
         reporter = HtmlReporter()
         output_path = reporter.generate(sample_report, temp_output_dir)
@@ -113,6 +129,49 @@ class TestHtmlReporter:
         content = output_path.read_text(encoding="utf-8")
         assert "summary-cards" in content
         assert "pass-rate" in content
+
+
+class TestHtmlReporterEscaping:
+    """HtmlReporter must escape untrusted/model-derived strings (XSS guard)."""
+
+    def test_html_escapes_dynamic_values(self) -> None:
+        from evalforge.models.report import Report, ReportSummary
+        from evalforge.models.test_result import TestResult
+
+        payload = "<script>alert('xss')</script>"
+        results = [
+            TestResult(
+                test_case_id="tc-x",
+                test_case_name=payload,
+                passed=False,
+                score=0.1,
+                actual_response=payload,
+                error=payload,
+                execution_time_ms=10.0,
+            ),
+        ]
+        summary = ReportSummary(
+            total=1, passed=0, failed=1, skipped=0, pass_rate=0.0, avg_score=0.1
+        )
+        # suite_name kept filesystem-safe (it becomes the output filename); the
+        # XSS payload still flows through suite_name escaping via _build_html below.
+        report = Report(
+            suite_name=payload,
+            summary=summary,
+            results=results,
+            metadata={payload: payload},
+        )
+
+        # Build the HTML body directly to exercise every escaped field, including
+        # suite_name, without hitting Windows filename restrictions.
+        content = HtmlReporter()._build_html(report)
+
+        # Raw script tag must never appear; it must be HTML-escaped instead.
+        assert "<script>alert('xss')</script>" not in content
+        assert "&lt;script&gt;" in content
+        # suite_name, metadata key/value, test_case_name, response, and error
+        # all carry the payload, so the escaped form must be present.
+        assert content.count("&lt;script&gt;") >= 5
 
 
 class TestReportSummaryAccuracy:

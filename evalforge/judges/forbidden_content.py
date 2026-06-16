@@ -27,7 +27,9 @@ class ForbiddenContentJudge(BaseJudge):
         """
         expected_data = test_case.expected or {}
         forbidden: list[str] = (
-            expected_data.get("forbidden", []) if isinstance(expected_data, dict) else []
+            expected_data.get("forbidden", [])
+            if isinstance(expected_data, dict)
+            else []
         )
 
         if not forbidden:
@@ -73,9 +75,7 @@ class ForbiddenContentJudge(BaseJudge):
             pattern_lower = pattern.lower()
 
             if pattern_lower in response_lower:
-                violations.append(
-                    {"pattern": pattern, "match_type": "substring"}
-                )
+                violations.append({"pattern": pattern, "match_type": "substring"})
                 continue
 
             try:

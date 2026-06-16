@@ -159,7 +159,9 @@ class TestAgentRunner:
         backend = MockBackend()
         runner = AgentRunner(backend=backend)
 
-        tool_response = '{"tool_calls": [{"name": "calculator", "args": {"expr": "15% of 2847"}}]}'
+        tool_response = (
+            '{"tool_calls": [{"name": "calculator", "args": {"expr": "15% of 2847"}}]}'
+        )
         calls = runner._parse_tool_calls(tool_response)
 
         assert len(calls) == 1

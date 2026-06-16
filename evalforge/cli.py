@@ -15,6 +15,8 @@ from evalforge import __version__
 
 if TYPE_CHECKING:
     from evalforge.backends.base import BaseBackend
+    from evalforge.judges.base import BaseJudge
+    from evalforge.models.test_case import TestCaseType
     from evalforge.models.test_result import TestResult
     from evalforge.reporters.base import BaseReporter
 
@@ -39,6 +41,7 @@ def get_db_path(db_option: str | None = None) -> str:
         return db_option
     try:
         from evalforge.workspaces.manager import WorkspaceManager
+
         manager = WorkspaceManager()
         active = manager.get_active()
         if active:
@@ -48,13 +51,51 @@ def get_db_path(db_option: str | None = None) -> str:
     return "evalforge_history.db"
 
 
+def build_backend(name: str) -> BaseBackend:
+    """Construct a backend instance by name.
+
+    Args:
+        name: Backend identifier (mock, openai, anthropic, huggingface, litellm).
+
+    Returns:
+        An instantiated backend.
+
+    Raises:
+        ValueError: If the backend name is not recognised.
+    """
+    if name == "mock":
+        from evalforge.backends.mock import MockBackend
+
+        return MockBackend()
+    if name == "openai":
+        from evalforge.backends.openai_compatible import OpenAICompatibleBackend
+
+        return OpenAICompatibleBackend()
+    if name == "anthropic":
+        from evalforge.backends.anthropic import AnthropicBackend
+
+        return AnthropicBackend()
+    if name == "huggingface":
+        from evalforge.backends.huggingface import HuggingFaceBackend
+
+        return HuggingFaceBackend()
+    if name == "litellm":
+        from evalforge.backends.litellm import LiteLLMBackend
+
+        return LiteLLMBackend()
+    raise ValueError(f"Unsupported backend: {name}")
+
+
 @app.command()
-def eval(
+def eval(  # noqa: C901
     suite_path: Path = typer.Argument(
         ..., help="Path to the YAML test suite file", exists=True
     ),
     backend: str = typer.Option(
-        "mock", "--backend", "-b", help="Backend to use: mock, openai, anthropic, huggingface, litellm"
+        "mock",
+        "--backend",
+        "-b",
+        help="Backend to use: mock, openai, anthropic, huggingface, litellm",
     ),
     output: Path | None = typer.Option(
         None, "--output", "-o", help="Output directory for reports"
@@ -74,14 +115,25 @@ def eval(
     db_path: str | None = typer.Option(
         None, "--db", help="SQLite history DB path to save to"
     ),
+    judge_plugin: Path | None = typer.Option(
+        None,
+        "--judge-plugin",
+        help="Path to a custom judge plugin module (defines a 'judge' function)",
+    ),
+    judge_plugin_type: str = typer.Option(
+        "semantic_answer",
+        "--judge-plugin-type",
+        help="Test-case type the custom judge handles (e.g. semantic_answer)",
+    ),
 ) -> None:
     """Run an evaluation suite against an AI backend.
 
     Loads the test suite, executes each test case against the specified
     backend, runs judges on responses, and generates a report.
     Use --from-hf to auto-generate a suite from a HuggingFace dataset.
+    Use --judge-plugin to override a judge for one test-case type with a
+    user-defined plugin (see ``evalforge plugins validate``).
     """
-    from evalforge.backends.mock import MockBackend
     from evalforge.loader.suite_loader import SuiteLoader
     from evalforge.models.report import Report, ReportSummary
     from evalforge.reporters.html import HtmlReporter
@@ -95,9 +147,11 @@ def eval(
 
     if from_hf:
         from evalforge.datasets.huggingface_loader import HuggingFaceDatasetLoader
+
         console.print(f"Loading from HuggingFace: {from_hf}")
         hf = HuggingFaceDatasetLoader()
         import tempfile
+
         tmp_path = Path(tempfile.gettempdir()) / f"evalforge_hf_{from_hf}.yaml"
         _run_async(hf.create_test_suite(from_hf, str(tmp_path), max_samples=20))
         suite = loader.load_suite(tmp_path)
@@ -114,27 +168,30 @@ def eval(
     console.print(f"Suite: [bold]{suite.name}[/bold]")
     console.print(f"Test cases: {len(suite.test_cases)}")
 
-    backend_instance: BaseBackend
-    if backend == "mock":
-        from evalforge.backends.mock import MockBackend
-        backend_instance = MockBackend()
-    elif backend == "openai":
-        from evalforge.backends.openai_compatible import OpenAICompatibleBackend
-        backend_instance = OpenAICompatibleBackend()
-    elif backend == "anthropic":
-        from evalforge.backends.anthropic import AnthropicBackend
-        backend_instance = AnthropicBackend()
-    elif backend == "huggingface":
-        from evalforge.backends.huggingface import HuggingFaceBackend
-        backend_instance = HuggingFaceBackend()
-    elif backend == "litellm":
-        from evalforge.backends.litellm import LiteLLMBackend
-        backend_instance = LiteLLMBackend()
-    else:
-        console.print(f"[red]Unsupported backend: {backend}[/red]")
-        raise typer.Exit(code=1)
+    try:
+        backend_instance: BaseBackend = build_backend(backend)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
 
-    runner = RAGRunner(backend=backend_instance)
+    judge_overrides: dict[TestCaseType, BaseJudge] | None = None
+    if judge_plugin is not None:
+        from evalforge.plugins import resolve_judge_override
+
+        try:
+            override_type, custom_judge = resolve_judge_override(
+                str(judge_plugin), judge_plugin_type
+            )
+        except (FileNotFoundError, AttributeError, ImportError, ValueError) as exc:
+            console.print(f"[red]Failed to load judge plugin: {exc}[/red]")
+            raise typer.Exit(code=1) from exc
+        judge_overrides = {override_type: custom_judge}
+        console.print(
+            f"[cyan]Custom judge plugin loaded for type "
+            f"'{override_type.value}': {custom_judge._name}[/cyan]"
+        )
+
+    runner = RAGRunner(backend=backend_instance, judge_overrides=judge_overrides)
     results: list[TestResult] = _run_async(runner.run_suite(suite))
 
     passed = sum(1 for r in results if r.passed)
@@ -160,12 +217,15 @@ def eval(
     if save:
         try:
             from evalforge.storage.history import HistoryStore
+
             actual_db = get_db_path(db_path)
             store = HistoryStore(actual_db)
             store.save_run(report.model_dump(mode="json"))
             console.print(f"[green]Saved run to history database:[/green] {actual_db}")
         except Exception as e:
-            console.print(f"[yellow]Could not save run to history database: {e}[/yellow]")
+            console.print(
+                f"[yellow]Could not save run to history database: {e}[/yellow]"
+            )
 
     reporters: dict[str, BaseReporter] = {
         "markdown": MarkdownReporter(),
@@ -191,13 +251,17 @@ def eval(
     console.print(f"Report saved to: {report_path}")
 
     if fail_threshold > 0 and pass_rate < fail_threshold:
-        console.print(f"[red]Pass rate {pass_rate:.1%} below threshold {fail_threshold:.1%}[/red]")
+        console.print(
+            f"[red]Pass rate {pass_rate:.1%} below threshold {fail_threshold:.1%}[/red]"
+        )
         raise typer.Exit(code=1)
 
 
 @app.command(name="list-suites")
 def list_suites(
-    directory: Path = typer.Option(Path("."), "--dir", "-d", help="Directory to search for suites"),
+    directory: Path = typer.Option(
+        Path("."), "--dir", "-d", help="Directory to search for suites"
+    ),
 ) -> None:
     """List available test suites in a directory.
 
@@ -343,7 +407,8 @@ def drift(
 
     if result.is_regression:
         console.print(
-            "\n[red]Regression detected! Scores or pass rate declined significantly.[/red]"
+            "\n[red]Regression detected! "
+            "Scores or pass rate declined significantly.[/red]"
         )
         raise typer.Exit(code=1)
     else:
@@ -360,14 +425,18 @@ def version() -> None:
 def ci(
     suite_path: Path = typer.Argument(..., help="Path to YAML test suite", exists=True),
     backend: str = typer.Option("mock", "--backend", "-b", help="Backend to use"),
-    fail_threshold: float = typer.Option(0.7, "--fail-threshold", help="Minimum passing score"),
+    fail_threshold: float = typer.Option(
+        0.7, "--fail-threshold", help="Minimum passing score"
+    ),
 ) -> None:
     """Run evaluation suite in CI mode (posts to GitHub if env vars set)."""
     from evalforge.ci.github_action import CIPipeline
 
     console.print(f"[bold blue]EvalForge CI[/bold blue] v{__version__}")
     result = _run_async(
-        CIPipeline(suite_path=str(suite_path), backend=backend, fail_threshold=fail_threshold).run()
+        CIPipeline(
+            suite_path=str(suite_path), backend=backend, fail_threshold=fail_threshold
+        ).run()
     )
     exit_code = result.get("exit_code", 0)
     if exit_code != 0:
@@ -377,35 +446,97 @@ def ci(
 
 
 @app.command("baseline")
-def baseline_cmd(
+def baseline_cmd(  # noqa: C901
     action: str = typer.Argument(..., help="Action: set or compare"),
     report_path: Path = typer.Argument(..., help="Path to report JSON", exists=True),
+    db_path: str | None = typer.Option(
+        None,
+        "--db",
+        help=(
+            "Use the SQLite history store as the baseline source, keyed by the "
+            "report's suite name (instead of the local .evalforge/baseline.json file)"
+        ),
+    ),
+    threshold: float = typer.Option(
+        0.1, "--threshold", help="Regression threshold for the comparison"
+    ),
 ) -> None:
     """Manage evaluation baselines.
 
     * set — Save a report as the new baseline.
     * compare — Compare a report against the stored baseline.
+
+    By default the baseline lives in ``.evalforge/baseline.json``. Pass ``--db``
+    to store and compare baselines in the SQLite history database, keyed by the
+    suite name (this is the flow the history API and dashboard read from).
     """
     from evalforge.drift import DriftDetector
 
+    # --- Storage-backed baseline flow (wires DriftDetector to the history store) ---
+    if db_path is not None:
+        from evalforge.storage.history import HistoryStore
+
+        store = HistoryStore(db_path)
+        current = DriftDetector.load_report(report_path)
+
+        if action == "set":
+            store.set_baseline(current.suite_name, current.model_dump(mode="json"))
+            console.print(
+                f"[green]Baseline for suite '{current.suite_name}' "
+                f"saved to {db_path}[/green]"
+            )
+            return
+
+        if action == "compare":
+            stored = store.get_baseline(current.suite_name)
+            if stored is None:
+                console.print(
+                    f"[red]No baseline found for suite '{current.suite_name}'. "
+                    f"Run 'evalforge baseline set <report> --db {db_path}' first.[/red]"
+                )
+                raise typer.Exit(code=1)
+
+            from evalforge.models.report import Report
+
+            baseline = Report.model_validate(stored)
+            detector = DriftDetector(threshold=threshold)
+            drift_result = detector.compare(baseline, current)
+
+            console.print(f"Suite: [bold]{current.suite_name}[/bold]")
+            console.print(f"Pass rate delta: {drift_result.pass_rate_delta:+.2%}")
+            console.print(f"Avg score delta: {drift_result.avg_score_delta:+.4f}")
+            console.print(f"Changed tests: {len(drift_result.changed_tests)}")
+            if drift_result.is_regression:
+                console.print("[red]Regression detected vs stored baseline[/red]")
+                raise typer.Exit(code=1)
+            console.print("[green]No regression vs stored baseline[/green]")
+            return
+
+        console.print(f"[red]Unknown action: {action}[/red]")
+        raise typer.Exit(code=2)
+
+    # --- File-based baseline flow (default) ---
     baseline_file = Path(".evalforge/baseline.json")
 
     if action == "set":
         baseline_file.parent.mkdir(parents=True, exist_ok=True)
-        baseline_file.write_text(report_path.read_text(encoding="utf-8"), encoding="utf-8")
+        baseline_file.write_text(
+            report_path.read_text(encoding="utf-8"), encoding="utf-8"
+        )
         console.print(f"[green]Baseline saved to {baseline_file}[/green]")
         return
 
     if action == "compare":
         if not baseline_file.exists():
             console.print(
-                "[red]No baseline found. Run 'evalforge baseline set <report>' first.[/red]"
+                "[red]No baseline found. "
+                "Run 'evalforge baseline set <report>' first.[/red]"
             )
             raise typer.Exit(code=1)
 
         baseline = DriftDetector.load_report(baseline_file)
         current = DriftDetector.load_report(report_path)
-        detector = DriftDetector()
+        detector = DriftDetector(threshold=threshold)
         drift_result = detector.compare(baseline, current)
 
         console.print(f"Pass rate delta: {drift_result.pass_rate_delta:+.2%}")
@@ -424,7 +555,9 @@ def baseline_cmd(
 def serve(
     host: str = typer.Option("127.0.0.1", "--host", help="Bind host"),
     port: int = typer.Option(8000, "--port", "-p", help="Bind port"),
-    db_path: str = typer.Option("evalforge_history.db", "--db", help="SQLite history DB path"),
+    db_path: str = typer.Option(
+        "evalforge_history.db", "--db", help="SQLite history DB path"
+    ),
 ) -> None:
     """Start the EvalForge history API server.
 
@@ -492,27 +625,83 @@ def workspace_cmd(
 @app.command()
 def schedule(
     suite_path: Path = typer.Argument(..., help="Path to YAML test suite", exists=True),
-    interval_minutes: int = typer.Option(60, "--interval", "-i", help="Interval in minutes"),
+    interval_minutes: int = typer.Option(
+        60, "--interval", "-i", help="Interval in minutes"
+    ),
+    backend: str = typer.Option(
+        "mock", "--backend", "-b", help="Backend to run the scheduled eval against"
+    ),
+    save: bool = typer.Option(
+        True,
+        "--save/--no-save",
+        help="Persist each scheduled run to the history database",
+    ),
+    db_path: str | None = typer.Option(
+        None, "--db", help="SQLite history DB path for saved scheduled runs"
+    ),
 ) -> None:
-    """Schedule a recurring evaluation (runs once if APScheduler unavailable)."""
-    from evalforge.backends.mock import MockBackend
+    """Schedule a recurring evaluation (runs once if APScheduler unavailable).
+
+    Each scheduled invocation runs the suite against ``--backend`` and, unless
+    ``--no-save`` is passed, persists the resulting report to the history
+    database so the dashboard and ``baseline``/``drift`` flows can pick it up.
+    """
     from evalforge.loader.suite_loader import SuiteLoader
+    from evalforge.models.report import Report, ReportSummary
     from evalforge.runners.rag_runner import RAGRunner
     from evalforge.scheduler.cron import SimpleScheduler
 
     def _run_eval() -> None:
         loader = SuiteLoader()
         suite = loader.load_suite(suite_path)
-        runner = RAGRunner(backend=MockBackend())
-        _run_async(runner.run_suite(suite))
+        try:
+            backend_instance = build_backend(backend)
+        except ValueError:
+            backend_instance = build_backend("mock")
+        runner = RAGRunner(backend=backend_instance)
+        results = _run_async(runner.run_suite(suite))
+
+        passed = sum(1 for r in results if r.passed)
+        total = len(results)
+        summary = ReportSummary(
+            total=total,
+            passed=passed,
+            failed=total - passed,
+            skipped=0,
+            pass_rate=passed / total if total else 0.0,
+            avg_score=sum(r.score for r in results) / total if total else 0.0,
+        )
+        report = Report(
+            suite_name=suite.name,
+            summary=summary,
+            results=results,
+            metadata={"backend": backend, "scheduled": True},
+        )
+
+        if save:
+            try:
+                from evalforge.storage.history import HistoryStore
+
+                actual_db = get_db_path(db_path)
+                HistoryStore(actual_db).save_run(report.model_dump(mode="json"))
+                console.print(
+                    f"[green]Scheduled run saved to {actual_db} "
+                    f"({passed}/{total} passed)[/green]"
+                )
+            except Exception as exc:
+                console.print(f"[yellow]Could not save scheduled run: {exc}[/yellow]")
 
     sched = SimpleScheduler()
     sched.add_job(_run_eval, trigger="interval", minutes=interval_minutes)
-    console.print(f"[green]Scheduled '{suite_path}' every {interval_minutes} minutes[/green]")
+    console.print(
+        f"[green]Scheduled '{suite_path}' every {interval_minutes} minutes "
+        f"on backend '{backend}'[/green]"
+    )
 
     if sched._scheduler is not None:
         console.print("Press Ctrl+C to exit.")
         import time
+
         try:
             while True:
                 time.sleep(1)

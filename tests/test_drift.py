@@ -19,9 +19,15 @@ def _make_report(
 ) -> Report:
     if results is None:
         results = [
-            TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
-            TestResult(test_case_id="tc-002", test_case_name="Test 2", passed=True, score=0.8),
-            TestResult(test_case_id="tc-003", test_case_name="Test 3", passed=False, score=0.3),
+            TestResult(
+                test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0
+            ),
+            TestResult(
+                test_case_id="tc-002", test_case_name="Test 2", passed=True, score=0.8
+            ),
+            TestResult(
+                test_case_id="tc-003", test_case_name="Test 3", passed=False, score=0.3
+            ),
         ][:total]
     summary = ReportSummary(
         total=total,
@@ -40,14 +46,26 @@ def _make_report(
 
 
 class TestDriftDetector:
-
     def test_pass_to_fail_detection(self) -> None:
         detector = DriftDetector(threshold=0.1)
         baseline = _make_report(
-            total=2, passed=2, failed=0, avg_score=1.0,
+            total=2,
+            passed=2,
+            failed=0,
+            avg_score=1.0,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
-                TestResult(test_case_id="tc-002", test_case_name="Test 2", passed=True, score=1.0),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=1.0,
+                ),
+                TestResult(
+                    test_case_id="tc-002",
+                    test_case_name="Test 2",
+                    passed=True,
+                    score=1.0,
+                ),
             ],
         )
         current = _make_report(
@@ -56,8 +74,18 @@ class TestDriftDetector:
             failed=1,
             avg_score=0.5,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
-                TestResult(test_case_id="tc-002", test_case_name="Test 2", passed=False, score=0.0),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=1.0,
+                ),
+                TestResult(
+                    test_case_id="tc-002",
+                    test_case_name="Test 2",
+                    passed=False,
+                    score=0.0,
+                ),
             ],
         )
 
@@ -74,8 +102,18 @@ class TestDriftDetector:
             failed=1,
             avg_score=0.5,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
-                TestResult(test_case_id="tc-002", test_case_name="Test 2", passed=False, score=0.0),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=1.0,
+                ),
+                TestResult(
+                    test_case_id="tc-002",
+                    test_case_name="Test 2",
+                    passed=False,
+                    score=0.0,
+                ),
             ],
         )
         current = _make_report(
@@ -84,8 +122,18 @@ class TestDriftDetector:
             failed=0,
             avg_score=1.0,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
-                TestResult(test_case_id="tc-002", test_case_name="Test 2", passed=True, score=1.0),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=1.0,
+                ),
+                TestResult(
+                    test_case_id="tc-002",
+                    test_case_name="Test 2",
+                    passed=True,
+                    score=1.0,
+                ),
             ],
         )
 
@@ -97,15 +145,31 @@ class TestDriftDetector:
     def test_no_change_detection(self) -> None:
         detector = DriftDetector(threshold=0.1)
         baseline = _make_report(
-            total=1, passed=1, failed=0, avg_score=1.0,
+            total=1,
+            passed=1,
+            failed=0,
+            avg_score=1.0,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=1.0,
+                ),
             ],
         )
         current = _make_report(
-            total=1, passed=1, failed=0, avg_score=1.0,
+            total=1,
+            passed=1,
+            failed=0,
+            avg_score=1.0,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=1.0),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=1.0,
+                ),
             ],
         )
 
@@ -117,9 +181,17 @@ class TestDriftDetector:
     def test_regression_threshold(self) -> None:
         detector = DriftDetector(threshold=0.1)
         baseline = _make_report(
-            total=1, passed=1, failed=0, avg_score=0.95,
+            total=1,
+            passed=1,
+            failed=0,
+            avg_score=0.95,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=0.95),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=0.95,
+                ),
             ],
         )
         current = _make_report(
@@ -128,7 +200,12 @@ class TestDriftDetector:
             failed=0,
             avg_score=0.92,
             results=[
-                TestResult(test_case_id="tc-001", test_case_name="Test 1", passed=True, score=0.92),
+                TestResult(
+                    test_case_id="tc-001",
+                    test_case_name="Test 1",
+                    passed=True,
+                    score=0.92,
+                ),
             ],
         )
 

@@ -1,0 +1,41 @@
+version: "3.9"
+
+# EvalForge is CLI-first and offline-first: the CLI and the history API use a local
+# SQLite database by default and need no services. This compose file provides optional
+# Postgres (pgvector) + Redis for deployments that want shared infrastructure (e.g. a
+# Postgres-backed history store or Redis-backed caching/scheduling).
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: evalforge_postgres
+    environment:
+      POSTGRES_USER: evalforge
+      POSTGRES_PASSWORD: evalforge
+      POSTGRES_DB: evalforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evalforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: evalforge_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:

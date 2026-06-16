@@ -31,7 +31,9 @@ class TestHuggingFaceBackend:
 
     @pytest.mark.asyncio
     async def test_simulated_query(self) -> None:
-        backend = HuggingFaceBackend(api_token=None, model="meta-llama/Llama-2-7b-chat-hf")
+        backend = HuggingFaceBackend(
+            api_token=None, model="meta-llama/Llama-2-7b-chat-hf"
+        )
         response = await backend.query("Tell me a story")
         assert response.content != ""
         assert response.metadata["method"] == "simulated"

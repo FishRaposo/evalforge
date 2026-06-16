@@ -36,7 +36,10 @@ class TerminalReporter:
         ]
         for r in report.results:
             status = "PASS" if r.passed else "FAIL"
-            lines.append(f"  [{status}] {r.test_case_id}: {r.test_case_name} (score={r.score:.2f})")
+            lines.append(
+                f"  [{status}] {r.test_case_id}: "
+                f"{r.test_case_name} (score={r.score:.2f})"
+            )
         return "\n".join(lines)
 
     def print(self, report: Report) -> None:

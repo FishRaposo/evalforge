@@ -40,7 +40,10 @@ class TestDiscordNotifier:
         transport = httpx.MockTransport(_handler)
         original_client = httpx.AsyncClient
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("httpx.AsyncClient", lambda **kwargs: original_client(transport=transport, **kwargs))
+            mp.setattr(
+                "httpx.AsyncClient",
+                lambda **kwargs: original_client(transport=transport, **kwargs),
+            )
             res = await notifier.send(report)
             assert res is True
 
@@ -74,6 +77,9 @@ class TestSlackNotifier:
         transport = httpx.MockTransport(_handler)
         original_client = httpx.AsyncClient
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("httpx.AsyncClient", lambda **kwargs: original_client(transport=transport, **kwargs))
+            mp.setattr(
+                "httpx.AsyncClient",
+                lambda **kwargs: original_client(transport=transport, **kwargs),
+            )
             res = await notifier.send(report)
             assert res is True

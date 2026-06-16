@@ -16,21 +16,43 @@ class TestCustomJudge:
 
     def test_bool_result(self) -> None:
         judge = CustomJudge(lambda tc, resp: True, name="bool_judge")
-        tc = TestCase(id="t1", name="Test", type=TestCaseType.EXACT_ANSWER, input="hi", expected="hi")
+        tc = TestCase(
+            id="t1",
+            name="Test",
+            type=TestCaseType.EXACT_ANSWER,
+            input="hi",
+            expected="hi",
+        )
         result = judge.judge(tc, "hi")
         assert result.passed is True
         assert result.score == 1.0
 
     def test_dict_result(self) -> None:
-        judge = CustomJudge(lambda tc, resp: {"passed": True, "score": 0.95}, name="dict_judge")
-        tc = TestCase(id="t1", name="Test", type=TestCaseType.EXACT_ANSWER, input="hi", expected="hi")
+        judge = CustomJudge(
+            lambda tc, resp: {"passed": True, "score": 0.95}, name="dict_judge"
+        )
+        tc = TestCase(
+            id="t1",
+            name="Test",
+            type=TestCaseType.EXACT_ANSWER,
+            input="hi",
+            expected="hi",
+        )
         result = judge.judge(tc, "hi")
         assert result.passed is True
         assert result.score == 0.95
 
     def test_judgeresult_result(self) -> None:
-        judge = CustomJudge(lambda tc, resp: JudgeResult(passed=True, score=0.8), name="jr_judge")
-        tc = TestCase(id="t1", name="Test", type=TestCaseType.EXACT_ANSWER, input="hi", expected="hi")
+        judge = CustomJudge(
+            lambda tc, resp: JudgeResult(passed=True, score=0.8), name="jr_judge"
+        )
+        tc = TestCase(
+            id="t1",
+            name="Test",
+            type=TestCaseType.EXACT_ANSWER,
+            input="hi",
+            expected="hi",
+        )
         result = judge.judge(tc, "hi")
         assert result.passed is True
 
@@ -39,7 +61,13 @@ class TestCustomJudge:
             raise RuntimeError("boom")
 
         judge = CustomJudge(_bad, name="bad_judge")
-        tc = TestCase(id="t1", name="Test", type=TestCaseType.EXACT_ANSWER, input="hi", expected="hi")
+        tc = TestCase(
+            id="t1",
+            name="Test",
+            type=TestCaseType.EXACT_ANSWER,
+            input="hi",
+            expected="hi",
+        )
         result = judge.judge(tc, "hi")
         assert result.passed is False
         assert result.score == 0.0
@@ -57,7 +85,13 @@ class TestLoadJudgeFromModule:
         )
         judge = load_judge_from_module(str(mod), judge_name="my_judge")
         assert judge._name == "my_judge"
-        tc = TestCase(id="t1", name="Test", type=TestCaseType.EXACT_ANSWER, input="hi", expected="hi")
+        tc = TestCase(
+            id="t1",
+            name="Test",
+            type=TestCaseType.EXACT_ANSWER,
+            input="hi",
+            expected="hi",
+        )
         result = judge.judge(tc, "hi")
         assert result.passed is True
 

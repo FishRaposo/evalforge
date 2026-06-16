@@ -1,0 +1,19 @@
+{
+  "include": [
+    "evalforge"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.next",
+    "frontend",
+    ".venv"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.11",
+  "analysis": {
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true
+  }
+}

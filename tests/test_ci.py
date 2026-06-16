@@ -41,7 +41,9 @@ class TestGitHubPRReporter:
         assert ok is False
 
     @pytest.mark.asyncio
-    async def test_update_commit_status_success(self, reporter: GitHubPRReporter) -> None:
+    async def test_update_commit_status_success(
+        self, reporter: GitHubPRReporter
+    ) -> None:
         async def _handler(request: httpx.Request) -> httpx.Response:
             assert request.url.path == "/repos/owner/repo/statuses/abc123"
             body = json.loads(request.content)
@@ -50,7 +52,9 @@ class TestGitHubPRReporter:
 
         transport = httpx.MockTransport(_handler)
         async with httpx.AsyncClient(transport=transport) as client:
-            ok = await reporter.update_commit_status("abc123", "success", "All good", client=client)
+            ok = await reporter.update_commit_status(
+                "abc123", "success", "All good", client=client
+            )
         assert ok is True
 
     def test_get_pr_number_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -117,27 +121,40 @@ class TestCIPipeline:
     @pytest.fixture
     def sample_suite_path(self, tmp_path: pytestFixture) -> str:
         import yaml
+
         path = tmp_path / "suite.yaml"
         data = {
             "name": "CI Test Suite",
             "version": "1.0",
             "test_cases": [
-                {"id": "tc-1", "name": "Pass", "type": "exact_answer", "input": "hi", "expected": "hi"},
+                {
+                    "id": "tc-1",
+                    "name": "Pass",
+                    "type": "exact_answer",
+                    "input": "hi",
+                    "expected": "hi",
+                },
             ],
         }
         path.write_text(yaml.dump(data), encoding="utf-8")
         return str(path)
 
     @pytest.mark.asyncio
-    async def test_ci_pipeline_runs(self, sample_suite_path: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_ci_pipeline_runs(
+        self, sample_suite_path: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("GITHUB_SHA", "abc123")
-        pipeline = CIPipeline(suite_path=sample_suite_path, backend="mock", fail_threshold=0.5)
+        pipeline = CIPipeline(
+            suite_path=sample_suite_path, backend="mock", fail_threshold=0.5
+        )
 
         # Mock reporter to avoid real network calls
         calls: list[str] = []
+
         async def _mock_post(report: dict[str, Any]) -> bool:
             calls.append("post_comment")
             return True
+
         async def _mock_status(sha: str, state: str, desc: str) -> bool:
             calls.append(f"status:{state}")
             return True
@@ -152,7 +169,42 @@ class TestCIPipeline:
         assert "post_comment" in calls
 
     @pytest.mark.asyncio
-    async def test_ci_pipeline_fails_on_regression(self, sample_suite_path: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_ci_pipeline_uses_build_backend_factory(
+        self, sample_suite_path: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`--backend anthropic` must route through build_backend, not OpenAI."""
+        import evalforge.cli as cli
+        from evalforge.backends.mock import MockBackend
+
+        requested: list[str] = []
+
+        def _fake_build_backend(name: str):  # type: ignore[no-untyped-def]
+            requested.append(name)
+            return MockBackend()
+
+        monkeypatch.setattr(cli, "build_backend", _fake_build_backend)
+
+        pipeline = CIPipeline(
+            suite_path=sample_suite_path, backend="anthropic", fail_threshold=0.5
+        )
+
+        async def _mock_post(report: dict[str, Any]) -> bool:
+            return True
+
+        async def _mock_status(sha: str, state: str, desc: str) -> bool:
+            return True
+
+        pipeline.reporter.post_comment = _mock_post
+        pipeline.reporter.update_commit_status = _mock_status
+
+        result = await pipeline.run()
+        assert requested == ["anthropic"]
+        assert result["evaluation"]["backend"] == "anthropic"
+
+    @pytest.mark.asyncio
+    async def test_ci_pipeline_fails_on_regression(
+        self, sample_suite_path: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("GITHUB_SHA", "abc123")
         # Create baseline with perfect score to trigger regression
         os.makedirs(".evalforge", exist_ok=True)
@@ -160,11 +212,16 @@ class TestCIPipeline:
             json.dump({"summary": {"avg_score": 1.0}}, f)
 
         try:
-            pipeline = CIPipeline(suite_path=sample_suite_path, backend="mock", fail_threshold=0.5)
+            pipeline = CIPipeline(
+                suite_path=sample_suite_path, backend="mock", fail_threshold=0.5
+            )
+
             async def _mock_post(report: dict[str, Any]) -> bool:
                 return True
+
             async def _mock_status(sha: str, state: str, desc: str) -> bool:
                 return True
+
             pipeline.reporter.post_comment = _mock_post
             pipeline.reporter.update_commit_status = _mock_status
 

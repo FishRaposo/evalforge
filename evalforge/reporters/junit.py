@@ -47,9 +47,13 @@ class JUnitReporter:
             )
             if not result.passed:
                 failure = SubElement(testcase, "failure")
-                failure.text = result.error or f"Score {result.score:.2f} below threshold"
+                failure.text = (
+                    result.error or f"Score {result.score:.2f} below threshold"
+                )
 
-        return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(testsuites, encoding="unicode")
+        return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(
+            testsuites, encoding="unicode"
+        )
 
     def save(self, report: Report, path: str) -> str:
         """Save JUnit XML to file.

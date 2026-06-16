@@ -7,6 +7,8 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from shared_core.errors import BaseApplicationError, application_error_handler
+from shared_core.logging import RequestLoggingMiddleware
 
 from evalforge.storage.history import HistoryStore
 
@@ -27,7 +29,7 @@ class CompareIn(BaseModel):
     run_b_id: int
 
 
-def create_app(db_path: str = "evalforge_history.db") -> FastAPI:
+def create_app(db_path: str = "evalforge_history.db") -> FastAPI:  # noqa: C901
     """Create and configure the FastAPI application.
 
     Args:
@@ -37,6 +39,8 @@ def create_app(db_path: str = "evalforge_history.db") -> FastAPI:
         Configured FastAPI app.
     """
     app = FastAPI(title="EvalForge API", version="0.1.0")
+    app.add_exception_handler(BaseApplicationError, application_error_handler)
+    app.add_middleware(RequestLoggingMiddleware)
     store = HistoryStore(db_path)
 
     @app.get("/api/health")
@@ -44,7 +48,9 @@ def create_app(db_path: str = "evalforge_history.db") -> FastAPI:
         return {"status": "ok"}
 
     @app.get("/api/runs")
-    def list_runs(suite_name: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    def list_runs(
+        suite_name: str | None = None, limit: int = 100
+    ) -> list[dict[str, Any]]:
         """List recent evaluation runs."""
         return store.get_runs(suite_name=suite_name, limit=limit)
 
@@ -76,8 +82,10 @@ def create_app(db_path: str = "evalforge_history.db") -> FastAPI:
         return {
             "run_a_id": body.run_a_id,
             "run_b_id": body.run_b_id,
-            "pass_rate_delta": b_summary.get("pass_rate", 0.0) - a_summary.get("pass_rate", 0.0),
-            "avg_score_delta": b_summary.get("avg_score", 0.0) - a_summary.get("avg_score", 0.0),
+            "pass_rate_delta": b_summary.get("pass_rate", 0.0)
+            - a_summary.get("pass_rate", 0.0),
+            "avg_score_delta": b_summary.get("avg_score", 0.0)
+            - a_summary.get("avg_score", 0.0),
         }
 
     @app.get("/api/baselines/{suite_name}")

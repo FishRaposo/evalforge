@@ -102,44 +102,50 @@ class GitHubPRReporter:
         ]
 
         # Summary
-        summary = report.get('summary', {})
-        total = summary.get('total', summary.get('total_tests', 0))
-        passed = summary.get('passed', 0)
-        failed = summary.get('failed', 0)
+        summary = report.get("summary", {})
+        total = summary.get("total", summary.get("total_tests", 0))
+        passed = summary.get("passed", 0)
+        failed = summary.get("failed", 0)
 
-        lines.extend([
-            "### Summary",
-            "",
-            "| Metric | Value |",
-            "|--------|-------|",
-            f"| Total Tests | {total} |",
-            f"| Passed | {passed} ✅ |",
-            f"| Failed | {failed} ❌ |",
-            f"| Pass Rate | {summary.get('pass_rate', 0)*100:.1f}% |",
-            f"| Avg Score | {summary.get('avg_score', 0):.2f} |",
-            "",
-        ])
+        lines.extend(
+            [
+                "### Summary",
+                "",
+                "| Metric | Value |",
+                "|--------|-------|",
+                f"| Total Tests | {total} |",
+                f"| Passed | {passed} ✅ |",
+                f"| Failed | {failed} ❌ |",
+                f"| Pass Rate | {summary.get('pass_rate', 0) * 100:.1f}% |",
+                f"| Avg Score | {summary.get('avg_score', 0):.2f} |",
+                "",
+            ]
+        )
 
         # Failed tests
-        failed_tests = report.get('failed_tests', [])
+        failed_tests = report.get("failed_tests", [])
         if failed_tests:
-            lines.extend([
-                "### Failed Tests",
-                "",
-            ])
+            lines.extend(
+                [
+                    "### Failed Tests",
+                    "",
+                ]
+            )
             for test in failed_tests:
                 lines.append(f"- **{test['name']}**: {test.get('error', 'No details')}")
             lines.append("")
 
         # Judge breakdown
-        judge_scores = report.get('judge_scores', {})
+        judge_scores = report.get("judge_scores", {})
         if judge_scores:
-            lines.extend([
-                "### Judge Performance",
-                "",
-                "| Judge | Avg Score |",
-                "|-------|-----------|",
-            ])
+            lines.extend(
+                [
+                    "### Judge Performance",
+                    "",
+                    "| Judge | Avg Score |",
+                    "|-------|-----------|",
+                ]
+            )
             for judge, score in judge_scores.items():
                 lines.append(f"| {judge} | {score:.2f} |")
             lines.append("")
@@ -236,7 +242,9 @@ class RegressionDetector:
         if current_score < self.fail_threshold:
             return {
                 "has_regression": True,
-                "reason": f"Score {current_score:.2f} below threshold {self.fail_threshold}",
+                "reason": (
+                    f"Score {current_score:.2f} below threshold {self.fail_threshold}"
+                ),
                 "current_score": current_score,
                 "threshold": self.fail_threshold,
                 "should_fail_build": True,
@@ -298,17 +306,15 @@ class CIPipeline:
         # Load suite
         from pathlib import Path
 
-        from evalforge.backends.mock import MockBackend
-        from evalforge.backends.openai_compatible import OpenAICompatibleBackend
+        from evalforge.cli import build_backend
         from evalforge.loader.suite_loader import SuiteLoader
         from evalforge.runners.rag_runner import RAGRunner
+
         loader = SuiteLoader()
         suite = loader.load_suite(Path(self.suite_path))
 
-        # Choose backend
-        backend: Any = MockBackend()
-        if self.backend != "mock":
-            backend = OpenAICompatibleBackend()
+        # Choose backend via the central factory (honors mock/openai/anthropic/...).
+        backend: Any = build_backend(self.backend)
 
         # Run evaluation
         runner = RAGRunner(backend=backend)
@@ -349,7 +355,9 @@ class CIPipeline:
             await self.reporter.update_commit_status(
                 sha,
                 state,
-                regression_result.get("reason", f"Score: {regression_result['current_score']:.2f}"),
+                regression_result.get(
+                    "reason", f"Score: {regression_result['current_score']:.2f}"
+                ),
             )
 
         # Save as new baseline if good
@@ -383,6 +391,7 @@ class CIPipeline:
             report: Evaluation report.
         """
         import os
+
         os.makedirs(".evalforge", exist_ok=True)
 
         with open(".evalforge/baseline.json", "w") as f:

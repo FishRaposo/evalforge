@@ -25,7 +25,9 @@ class RetrievalCheckJudge(BaseJudge):
         """
         expected_data = test_case.expected or {}
         expected_docs: list[str] = (
-            expected_data.get("documents", []) if isinstance(expected_data, dict) else []
+            expected_data.get("documents", [])
+            if isinstance(expected_data, dict)
+            else []
         )
 
         if not expected_docs:

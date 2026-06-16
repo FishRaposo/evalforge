@@ -62,7 +62,9 @@ def sample_test_suite() -> TestSuite:
                 name="Semantic answer",
                 type=TestCaseType.SEMANTIC_ANSWER,
                 input="Explain gravity",
-                expected="Gravity is a fundamental force that attracts objects with mass",
+                expected=(
+                    "Gravity is a fundamental force that attracts objects with mass"
+                ),
                 metadata={"threshold": 0.6},
                 tags=["science"],
             ),
@@ -79,8 +81,14 @@ def mock_backend() -> MockBackend:
     """
     backend = MockBackend()
     backend.add_response("capital of france", "Paris")
-    backend.add_response("hack", "I cannot assist with hacking or unauthorized access to systems.")
-    backend.add_response("gravity", "Gravity is a fundamental force of nature that attracts objects with mass toward each other")
+    backend.add_response(
+        "hack", "I cannot assist with hacking or unauthorized access to systems."
+    )
+    backend.add_response(
+        "gravity",
+        "Gravity is a fundamental force of nature that "
+        "attracts objects with mass toward each other",
+    )
     backend.add_response("largest planet", "Jupiter")
     return backend
 
@@ -208,7 +216,9 @@ def baseline_report() -> Report:
             execution_time_ms=75.0,
         ),
     ]
-    summary = ReportSummary(total=3, passed=3, failed=0, skipped=0, pass_rate=1.0, avg_score=0.95)
+    summary = ReportSummary(
+        total=3, passed=3, failed=0, skipped=0, pass_rate=1.0, avg_score=0.95
+    )
     return Report(
         suite_name="Baseline Report",
         summary=summary,

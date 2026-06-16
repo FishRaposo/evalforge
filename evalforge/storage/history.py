@@ -68,7 +68,7 @@ class HistoryStore:
                 (
                     report.get("suite_name", "unknown"),
                     datetime.now().isoformat(),
-                    report.get("backend"),
+                    report.get("backend") or report.get("metadata", {}).get("backend"),
                     summary.get("total", summary.get("total_tests", 0)),
                     summary.get("passed", 0),
                     summary.get("failed", 0),
@@ -95,7 +95,8 @@ class HistoryStore:
             conn.row_factory = sqlite3.Row
             if suite_name:
                 rows = conn.execute(
-                    "SELECT * FROM runs WHERE suite_name = ? ORDER BY timestamp DESC LIMIT ?",
+                    "SELECT * FROM runs WHERE suite_name = ? "
+                    "ORDER BY timestamp DESC LIMIT ?",
                     (suite_name, limit),
                 ).fetchall()
             else:
@@ -116,9 +117,7 @@ class HistoryStore:
         """
         with sqlite3.connect(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT * FROM runs WHERE id = ?", (run_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
         if row is None:
             return None
         return dict(row)

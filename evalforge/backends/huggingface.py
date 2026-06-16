@@ -24,13 +24,19 @@ class HuggingFaceBackend(BaseBackend):
         self._model = model
         self._client: Any | None = None
 
-    async def query(self, prompt: str, context: dict[str, Any] | None = None) -> BackendResponse:
+    async def query(
+        self, prompt: str, context: dict[str, Any] | None = None
+    ) -> BackendResponse:
         if not self._api_token:
             sim = SimulatedEvaluator(seed=hash(prompt) % 2**31)
             result = sim.evaluate(prompt)
             return BackendResponse(
                 content=result["reasoning"],
-                metadata={"method": "simulated", "model": self._model, "tokens_used": 0},
+                metadata={
+                    "method": "simulated",
+                    "model": self._model,
+                    "tokens_used": 0,
+                },
             )
 
         import httpx
@@ -43,7 +49,9 @@ class HuggingFaceBackend(BaseBackend):
         url = f"https://api-inference.huggingface.co/models/{self._model}"
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload, timeout=60.0)
+            response = await client.post(
+                url, headers=headers, json=payload, timeout=60.0
+            )
             response.raise_for_status()
             data = response.json()
 

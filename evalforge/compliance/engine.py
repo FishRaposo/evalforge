@@ -17,6 +17,7 @@ import yaml
 @dataclass
 class RuleResult:
     """Result of evaluating a single rule."""
+
     rule_id: str
     passed: bool
     severity: str
@@ -28,6 +29,7 @@ class RuleResult:
 @dataclass
 class ComplianceReport:
     """Full compliance evaluation report."""
+
     standard_id: str
     standard_name: str
     total_rules: int

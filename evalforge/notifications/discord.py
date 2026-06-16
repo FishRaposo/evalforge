@@ -35,13 +35,15 @@ class DiscordNotifier:
         payload = {
             "content": (
                 f"**EvalForge Report: {report.get('suite_name', 'Unknown')}**\n"
-                f"Passed: {summary.get('passed', 0)} / {summary.get('total', summary.get('total_tests', 0))}\n"
+                f"Passed: {summary.get('passed', 0)} / "
+                f"{summary.get('total', summary.get('total_tests', 0))}\n"
                 f"Pass Rate: {summary.get('pass_rate', 0.0):.1%}\n"
                 f"Avg Score: {summary.get('avg_score', 0.0):.2f}"
             ),
         }
 
         import httpx
+
         async with httpx.AsyncClient() as client:
             response = await client.post(self._url, json=payload, timeout=30.0)
             return response.status_code == 204

@@ -68,7 +68,13 @@ class TestServerApp:
         # Save run A
         report_a = {
             "suite_name": "suite",
-            "summary": {"total": 5, "passed": 3, "failed": 2, "pass_rate": 0.6, "avg_score": 0.6},
+            "summary": {
+                "total": 5,
+                "passed": 3,
+                "failed": 2,
+                "pass_rate": 0.6,
+                "avg_score": 0.6,
+            },
             "results": [],
         }
         res_a = client.post("/api/runs", json=report_a)
@@ -77,7 +83,13 @@ class TestServerApp:
         # Save run B
         report_b = {
             "suite_name": "suite",
-            "summary": {"total": 5, "passed": 4, "failed": 1, "pass_rate": 0.8, "avg_score": 0.8},
+            "summary": {
+                "total": 5,
+                "passed": 4,
+                "failed": 1,
+                "pass_rate": 0.8,
+                "avg_score": 0.8,
+            },
             "results": [],
         }
         res_b = client.post("/api/runs", json=report_b)
@@ -91,7 +103,9 @@ class TestServerApp:
         assert res_compare.json()["avg_score_delta"] == pytest.approx(0.2)
 
         # Compare with invalid IDs
-        res_invalid = client.post("/api/runs/compare", json={"run_a_id": 9999, "run_b_id": run_b_id})
+        res_invalid = client.post(
+            "/api/runs/compare", json={"run_a_id": 9999, "run_b_id": run_b_id}
+        )
         assert res_invalid.status_code == 404
 
     def test_baselines_endpoints(self, client: TestClient) -> None:

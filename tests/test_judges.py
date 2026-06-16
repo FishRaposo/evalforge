@@ -91,7 +91,11 @@ class TestSemanticMatchJudge:
             expected="Gravity is a fundamental force that attracts objects with mass",
         )
 
-        result = judge.judge(test_case, "Gravity is a fundamental force that attracts objects with mass toward each other")
+        result = judge.judge(
+            test_case,
+            "Gravity is a fundamental force that "
+            "attracts objects with mass toward each other",
+        )
 
         assert result.passed is True
         assert result.score > 0.3
@@ -128,7 +132,9 @@ class TestCitationCheckJudge:
             expected={"sources": ["NASA Climate Data"]},
         )
 
-        result = judge.judge(test_case, "According to NASA Climate Data, temperatures are rising.")
+        result = judge.judge(
+            test_case, "According to NASA Climate Data, temperatures are rising."
+        )
 
         assert result.passed is True
         assert result.score == 1.0
@@ -222,7 +228,11 @@ class TestRetrievalCheckJudge:
             expected={"documents": ["refund_policy_v3.pdf"]},
         )
 
-        result = judge.judge(test_case, "According to refund_policy_v3.pdf, customers can return items within 30 days.")
+        result = judge.judge(
+            test_case,
+            "According to refund_policy_v3.pdf, "
+            "customers can return items within 30 days.",
+        )
 
         assert result.passed is True
 
@@ -257,7 +267,9 @@ class TestForbiddenContentJudge:
             expected={"forbidden": ["take aspirin", "specific dosage"]},
         )
 
-        result = judge.judge(test_case, "You should take aspirin at a specific dosage of 500mg.")
+        result = judge.judge(
+            test_case, "You should take aspirin at a specific dosage of 500mg."
+        )
 
         assert result.passed is False
         assert result.score == 0.0
@@ -274,7 +286,9 @@ class TestForbiddenContentJudge:
             expected={"forbidden": ["prescribe medication", "specific dosage"]},
         )
 
-        result = judge.judge(test_case, "Please consult a healthcare professional for medical advice.")
+        result = judge.judge(
+            test_case, "Please consult a healthcare professional for medical advice."
+        )
 
         assert result.passed is True
         assert result.score == 1.0

@@ -27,9 +27,7 @@ class ReportSummary(BaseModel):
     failed: int = Field(..., description="Failed test cases")
     skipped: int = Field(default=0, description="Skipped test cases")
     pass_rate: float = Field(..., ge=0.0, le=1.0, description="Pass rate ratio")
-    avg_score: float = Field(
-        default=0.0, ge=0.0, le=1.0, description="Average score"
-    )
+    avg_score: float = Field(default=0.0, ge=0.0, le=1.0, description="Average score")
 
 
 class Report(BaseModel):

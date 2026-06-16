@@ -4,21 +4,17 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import SettingsConfigDict
+from shared_core.config import BaseAppConfig
 
 
-class Settings(BaseSettings):
+class Settings(BaseAppConfig):
     """EvalForge application settings.
 
-    Attributes:
-        DEFAULT_BACKEND: Default backend to use for evaluations.
-        OPENAI_API_KEY: API key for OpenAI-compatible backends.
-        OPENAI_BASE_URL: Base URL for the OpenAI-compatible API.
-        OPENAI_MODEL: Model identifier to use for API calls.
-        SIMILARITY_THRESHOLD: Default threshold for semantic similarity judges.
-        REQUEST_TIMEOUT: Maximum seconds to wait for a backend response.
-        MAX_CONCURRENT_REQUESTS: Maximum number of parallel requests to the backend.
-        REPORT_OUTPUT_DIR: Default directory for generated reports.
+    Extends ``shared_core.config.BaseAppConfig`` (inheriting DATABASE_URL, REDIS_URL,
+    LOG_LEVEL, ...) while keeping EvalForge's ``EVALFORGE_`` env prefix and domain
+    knobs. ``OPENAI_API_KEY`` is overridden to a plain ``str`` (the base declares it as
+    ``Optional[SecretStr]``) to preserve EvalForge's backend call sites.
     """
 
     DEFAULT_BACKEND: str = "mock"
@@ -30,7 +26,9 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_REQUESTS: int = 5
     REPORT_OUTPUT_DIR: str = "./reports"
 
-    model_config = {"env_prefix": "EVALFORGE_", "env_file": ".env", "extra": "ignore"}
+    model_config = SettingsConfigDict(
+        env_prefix="EVALFORGE_", env_file=".env", extra="ignore"
+    )
 
 
 @lru_cache

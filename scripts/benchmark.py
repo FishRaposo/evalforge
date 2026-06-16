@@ -16,7 +16,17 @@ def benchmark_suite(suite_path: str, iterations: int = 10) -> dict:
         start = time.perf_counter()
         try:
             subprocess.run(
-                ["python", "-m", "evalforge", "eval", suite_path, "--backend", "mock", "-o", "/tmp/benchmark.json"],
+                [
+                    "python",
+                    "-m",
+                    "evalforge",
+                    "eval",
+                    suite_path,
+                    "--backend",
+                    "mock",
+                    "-o",
+                    "/tmp/benchmark.json",
+                ],
                 capture_output=True,
                 check=True,
             )
@@ -53,7 +63,10 @@ def main():
             result = benchmark_suite(suite, iterations=5)
             print(f"\n{result['suite']}")
             print(f"  Iterations: {result['iterations']} | Errors: {result['errors']}")
-            print(f"  Duration: min={result['min_s']}s, mean={result['mean_s']}s, max={result['max_s']}s")
+            print(
+                f"  Duration: min={result['min_s']}s, "
+                f"mean={result['mean_s']}s, max={result['max_s']}s"
+            )
             print(f"  Percentiles: p50={result['p50_s']}s, p95={result['p95_s']}s")
 
     print("\n" + "=" * 80)

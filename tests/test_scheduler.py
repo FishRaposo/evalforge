@@ -15,7 +15,8 @@ class TestSimpleScheduler:
         sched = SimpleScheduler()
         callback = MagicMock()
 
-        # Test add job immediate execution (when fallback is active or real scheduler handles it)
+        # Test add job immediate execution
+        # (when fallback is active or real scheduler handles it)
         # We can mock out self._scheduler to simulate offline fallback
         sched._scheduler = None
 
