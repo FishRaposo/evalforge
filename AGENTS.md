@@ -25,6 +25,7 @@ evalforge/
 │   └── server/app.py             #   FastAPI history API (shared_core middleware + handler)
 ├── frontend/                     # Next.js dashboard — KEPT as-is
 ├── example_suites/  rule_packs/  data/  reports/  tests/  scripts/  docs/
+│   └── data/migrations/2026-08-12-.../ # versioned port fixtures + provenance manifest
 ├── examples/run_demo.py          # offline mock-backend evaluation demo
 ├── docker-compose.yml            # OPTIONAL pgvector + redis (CLI/server default to SQLite)
 ├── Makefile  ruff.toml  pyrightconfig.json  pyproject.toml  requirements.txt  .env.example
@@ -68,6 +69,11 @@ evalforge conversation run <scenario.yaml> --backend mock --output <report.json>
 evalforge conversation baseline/compare <report.json> --baseline <baseline.json>
 ```
 
+The 2026-08-12 retrieval/conversation fixtures are durable repository assets under
+`data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/`. Keep the
+manifest, retrieval goldens/corpus, scenario/persona/rubric YAML, baseline pair, and
+expected diff synchronized with their focused tests and migration provenance doc.
+
 Local verification uses `.venv` at the repo root (shared-core editable + `.[dev,server,llm]`).
 The heavy `hf` extra (datasets/transformers/torch) is optional — the HF loader has an
 offline synthetic fallback, so the suite runs without it.
@@ -77,7 +83,7 @@ offline synthetic fallback, so the suite runs without it.
 **Functional and migrated.** Config extends `BaseAppConfig` (prefix preserved); the
 history API uses `shared_core` middleware + error handler. The last verified pre-port
 repository state recorded **189 passing tests**. The retrieval/conversation port adds
-seven focused tests, but the 2026-08-12 consolidation environment had no repository
+eleven focused tests, but the 2026-08-12 consolidation environment had no repository
 `.venv` and system Python lacked `pydantic`, so that updated total was not executed;
 see `.portfolio-audit-work/reports/task-5-evalforge-report.md`. Dependency-free Python
 compilation and the retrieval-core behavior check passed. The Next.js `frontend/` is

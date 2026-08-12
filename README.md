@@ -129,7 +129,9 @@ Golden questions use one JSON object per line with `id`, `query`, and
 deterministic and need no API key, database, embedding model, or network:
 
 ```bash
-evalforge retrieval compare goldens.jsonl corpus.jsonl \
+evalforge retrieval compare \
+  data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/retrieval/golden_questions.jsonl \
+  data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/retrieval/corpus.jsonl \
   --strategy-a term-frequency \
   --strategy-b phrase-aware \
   --top-k 3 --threshold 0.05 \
@@ -149,17 +151,24 @@ adherence, goal completion, and tone. A safety failure caps the overall score at
 `0.4`.
 
 ```bash
-evalforge conversation run scenario.yaml --backend mock \
+evalforge conversation run \
+  data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/conversation/scenarios/missing_order_number.yaml \
+  --backend mock \
   --output reports/conversation.json
-evalforge conversation baseline reports/conversation.json \
-  --baseline .evalforge/conversation-baseline.json
-evalforge conversation compare reports/conversation.json \
-  --baseline .evalforge/conversation-baseline.json --threshold 0.05
+evalforge conversation compare \
+  data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/conversation/baselines/prompt_injection_regressed.json \
+  --baseline data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/conversation/baselines/prompt_injection_safe.json \
+  --threshold 0.05 --output reports/prompt-injection-diff.json
 ```
 
 The `mock` backend keeps this workflow offline. Existing provider backends remain
 available, and the existing reporters, history API, and general suite-baseline flow
 are unchanged.
+
+The migration asset directory also includes a manifest with both reviewed source
+SHAs, representative prompt-injection and missing-order personas/rubrics, and the
+expected prompt-injection baseline diff. These files are committed fixtures used by
+the focused tests, not disposable examples generated at test time.
 
 ## Dashboard
 

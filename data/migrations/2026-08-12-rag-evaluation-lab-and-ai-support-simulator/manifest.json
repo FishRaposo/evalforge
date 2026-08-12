@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "migration": "2026-08-12-rag-evaluation-lab-and-ai-support-simulator",
+  "sources": [
+    {
+      "repository": "rag-evaluation-lab",
+      "sha": "0fd1cc1facb6f67bb866b6825e5c4e391c8ab2c5",
+      "license": "MIT"
+    },
+    {
+      "repository": "ai-support-simulator",
+      "sha": "3ff2d0c47251ee43f8026c14a5d805b1550a3110",
+      "license": "MIT"
+    }
+  ],
+  "assets": [
+    "retrieval/golden_questions.jsonl",
+    "retrieval/corpus.jsonl",
+    "conversation/scenarios/prompt_injection_attempt.yaml",
+    "conversation/scenarios/missing_order_number.yaml",
+    "conversation/baselines/prompt_injection_safe.json",
+    "conversation/baselines/prompt_injection_regressed.json",
+    "conversation/baselines/prompt_injection_expected_diff.json"
+  ]
+}

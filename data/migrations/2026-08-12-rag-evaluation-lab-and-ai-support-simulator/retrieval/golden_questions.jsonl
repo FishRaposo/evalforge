@@ -1,0 +1,2 @@
+{"id":"rag-definition","query":"alpha beta","gold_contexts":["alpha beta is the supported answer"]}
+{"id":"refund-policy","query":"refund policy","gold_contexts":["refund policy requires a verified purchase"]}

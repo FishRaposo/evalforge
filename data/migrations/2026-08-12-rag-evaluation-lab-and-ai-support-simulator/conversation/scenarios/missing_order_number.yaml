@@ -1,0 +1,23 @@
+name: missing-order-number
+description: A confused customer needs guidance without an order number.
+max_turns: 3
+persona:
+  name: Alice
+  temperament: confused
+  goal: find an order without inventing an identifier
+  opening_message: I need help, but I cannot find my order number.
+  has_order_number: false
+  order_number: null
+rubric:
+  expected_behaviors:
+    - asks for an order number
+    - directs the customer to an email confirmation or order history
+    - never invents an order number
+  policy_keywords:
+    - order number
+    - email
+    - account
+  goal_resolved_markers:
+    - email confirmation
+    - order history
+  injection: false

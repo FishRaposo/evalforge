@@ -22,14 +22,14 @@ where needed to fit EvalForge.
 
 | Source paths | Capability selected | EvalForge destination |
 | --- | --- | --- |
-| `rag-evaluation-lab/datasets/golden_questions.jsonl` | JSONL contract with `query` and `gold_contexts` | `evalforge/retrieval_evaluation.py::load_golden_questions` |
+| `rag-evaluation-lab/datasets/golden_questions.jsonl`, `datasets/sample_corpus/*.md` | Golden questions and representative retrieval corpus | `data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/retrieval/{golden_questions,corpus}.jsonl`, loaded by `evalforge/retrieval_evaluation.py` |
 | `rag-evaluation-lab/src/rag_lab/runner.py` | Run the same goldens under two retrieval configurations and calculate aggregate deltas | `evalforge/retrieval_evaluation.py::{evaluate_strategy,compare_strategies}` |
 | `rag-evaluation-lab/src/rag_lab/gate.py`, `src/rag_lab/cli.py` | Thresholded, nonzero CI regression result | `evalforge/cli.py::retrieval_cmd` |
 | `rag-evaluation-lab/tests/test_runner.py`, `tests/test_gate.py`, `tests/test_cli.py` | Behavioral coverage for comparison and gate exit semantics | `tests/test_retrieval_workflows.py` |
 | `ai-support-simulator/src/support_sim/personas.py`, `runner.py` | Adaptive multi-turn and prompt-injection personas | `evalforge/conversation.py::{Persona,ConversationRunner}` |
-| `ai-support-simulator/src/support_sim/scenarios.py` and `scenarios/*.yaml` | YAML scenario/persona/rubric contract | `evalforge/conversation.py::load_conversation_scenario` |
+| `ai-support-simulator/src/support_sim/scenarios.py` and `scenarios/{prompt_injection_attempt,missing_order_number}.yaml` | Durable YAML scenario, persona, and rubric examples | `data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/conversation/scenarios/*.yaml`, loaded by `evalforge/conversation.py` |
 | `ai-support-simulator/src/support_sim/evaluator.py` | Safety, policy adherence, goal completion, and tone rubric with safety gate | `evalforge/conversation.py::evaluate_conversation`; refusal detection reuses EvalForge's existing `RefusalCheckJudge` |
-| `ai-support-simulator/src/support_sim/service.py`, `storage.py` | Baseline save and per-dimension diff | `evalforge/conversation.py::{save_conversation_report,compare_conversation_reports}` and `evalforge/cli.py::conversation_cmd` |
+| `ai-support-simulator/src/support_sim/service.py`, `storage.py` | Baseline save and per-dimension diff | `data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/conversation/baselines/*.json`, `evalforge/conversation.py::{save_conversation_report,compare_conversation_reports}`, and `evalforge/cli.py::conversation_cmd` |
 | `ai-support-simulator/tests/test_personas.py`, `test_runner.py`, `test_evaluator.py`, `test_service.py` | Multi-turn, rubric, and baseline regression contracts | `tests/test_conversation_evaluation.py` |
 
 ## Adaptation decisions
@@ -46,6 +46,10 @@ where needed to fit EvalForge.
   remain unchanged.
 - Frontends, FastAPI endpoints, SQLAlchemy models, Celery tasks, Alembic migrations,
   provider clients, and database stores from both sources were intentionally excluded.
+- `data/migrations/2026-08-12-rag-evaluation-lab-and-ai-support-simulator/manifest.json`
+  makes all seven durable assets discoverable and retains both source SHAs and MIT
+  status beside the fixtures. Focused tests and README CLI examples execute these
+  paths directly.
 
 ## Verification status
 
@@ -63,7 +67,7 @@ eligible for a separate archive decision only after all of the following are tru
 1. This EvalForge commit is reviewed and merged from
    `portfolio/consolidation/evalforge` into the repository's intended integration
    branch.
-2. The seven new focused tests and the full documented offline test/lint/typecheck
+2. The eleven new focused tests and the full documented offline test/lint/typecheck
    gates pass in a provisioned EvalForge environment.
 3. Portfolio inventory and cross-repository documentation point to EvalForge as the
    maintained destination and retain both exact source SHAs and MIT attribution.

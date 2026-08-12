@@ -11,50 +11,20 @@ from evalforge.cli import app
 
 
 runner = CliRunner()
-
-
-def _write_retrieval_fixtures(tmp_path: Path) -> tuple[Path, Path]:
-    goldens = tmp_path / "goldens.jsonl"
-    goldens.write_text(
-        json.dumps(
-            {
-                "id": "q1",
-                "query": "alpha beta",
-                "gold_contexts": ["alpha beta is the supported answer"],
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    corpus = tmp_path / "corpus.jsonl"
-    corpus.write_text(
-        "\n".join(
-            [
-                json.dumps(
-                    {
-                        "id": "gold",
-                        "content": "alpha beta is the supported answer",
-                    }
-                ),
-                json.dumps(
-                    {
-                        "id": "distractor",
-                        "content": "beta notes mention alpha alpha alpha",
-                    }
-                ),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return goldens, corpus
+ASSET_ROOT = (
+    Path(__file__).parents[1]
+    / "data"
+    / "migrations"
+    / "2026-08-12-rag-evaluation-lab-and-ai-support-simulator"
+)
+GOLDENS = ASSET_ROOT / "retrieval" / "golden_questions.jsonl"
+CORPUS = ASSET_ROOT / "retrieval" / "corpus.jsonl"
 
 
 def test_retrieval_compare_writes_strategy_diff_for_same_goldens(
     tmp_path: Path,
 ) -> None:
     """A phrase-aware candidate should beat term frequency on the same golden."""
-    goldens, corpus = _write_retrieval_fixtures(tmp_path)
     output = tmp_path / "comparison.json"
 
     result = runner.invoke(
@@ -62,8 +32,8 @@ def test_retrieval_compare_writes_strategy_diff_for_same_goldens(
         [
             "retrieval",
             "compare",
-            str(goldens),
-            str(corpus),
+            str(GOLDENS),
+            str(CORPUS),
             "--strategy-a",
             "term-frequency",
             "--strategy-b",
@@ -87,7 +57,6 @@ def test_retrieval_compare_writes_strategy_diff_for_same_goldens(
 
 def test_retrieval_compare_exits_one_when_candidate_regresses(tmp_path: Path) -> None:
     """CI should fail when candidate hit rate drops beyond the allowed threshold."""
-    goldens, corpus = _write_retrieval_fixtures(tmp_path)
     output = tmp_path / "regression.json"
 
     result = runner.invoke(
@@ -95,8 +64,8 @@ def test_retrieval_compare_exits_one_when_candidate_regresses(tmp_path: Path) ->
         [
             "retrieval",
             "compare",
-            str(goldens),
-            str(corpus),
+            str(GOLDENS),
+            str(CORPUS),
             "--strategy-a",
             "phrase-aware",
             "--strategy-b",
