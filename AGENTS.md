@@ -16,6 +16,8 @@ evalforge/
 │   ├── cli.py                    #   Typer CLI — the headline surface
 │   ├── config.py                 #   Settings(BaseAppConfig), EVALFORGE_ prefix
 │   ├── logging.py                #   structured logging (tested domain module — kept)
+│   ├── retrieval_evaluation.py   #   offline golden retrieval A/B + CI metric gate
+│   ├── conversation.py           #   multi-turn personas, rubric, baseline diff
 │   ├── judges/  backends/  runners/  reporters/  compliance/  loader/
 │   ├── datasets/  models/  drift.py  execution.py  plugins.py
 │   ├── scheduler/  notifications/  workspaces/  ci/
@@ -61,6 +63,9 @@ make demo         # offline mock-backend evaluation of example_suites/rag_basic.
 make serve        # evalforge serve (history API)
 make eval-basic   # evalforge eval example_suites/rag_basic.yaml
 evalforge eval <suite.yaml> --backend mock   # the headline CLI
+evalforge retrieval compare <goldens.jsonl> <corpus.jsonl> --output <report.json>
+evalforge conversation run <scenario.yaml> --backend mock --output <report.json>
+evalforge conversation baseline/compare <report.json> --baseline <baseline.json>
 ```
 
 Local verification uses `.venv` at the repo root (shared-core editable + `.[dev,server,llm]`).
@@ -69,10 +74,14 @@ offline synthetic fallback, so the suite runs without it.
 
 ## Current State
 
-**Functional, migrated, green.** Config extends `BaseAppConfig` (prefix preserved); the
-history API uses `shared_core` middleware + error handler. **146 tests pass**; `ruff
-check`/`format --check` clean; `make demo` runs a mock evaluation offline (9/10 passed on
-the sample suite) and writes a markdown report. The Next.js `frontend/` is unchanged.
+**Functional and migrated.** Config extends `BaseAppConfig` (prefix preserved); the
+history API uses `shared_core` middleware + error handler. The last verified pre-port
+repository state recorded **189 passing tests**. The retrieval/conversation port adds
+seven focused tests, but the 2026-08-12 consolidation environment had no repository
+`.venv` and system Python lacked `pydantic`, so that updated total was not executed;
+see `.portfolio-audit-work/reports/task-5-evalforge-report.md`. Dependency-free Python
+compilation and the retrieval-core behavior check passed. The Next.js `frontend/` is
+unchanged.
 
 ## Follow-ups (not done now)
 

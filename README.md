@@ -36,6 +36,10 @@ EvalForge gives you:
 - **Structured test suites**: Define expected behaviors in YAML, version them alongside your code
 - **Multiple judge types**: Exact match, semantic similarity, citation checking, refusal validation
 - **CI integration**: Run evaluations as part of your deployment pipeline
+- **Retrieval strategy A/B gates**: Compare deterministic retrieval strategies over the
+  same JSONL golden questions and fail CI on hit-rate or MRR regression
+- **Conversational regression tests**: Drive adaptive adversarial personas through
+  multiple turns and score safety, policy adherence, goal completion, and tone
 
 ## Why naive AI systems fail here
 
@@ -94,6 +98,9 @@ evalforge eval example_suites/rag_basic.yaml --backend openai --format json --ou
 | `evalforge plugins list/validate --path <dir-or-file>` | Discover or validate custom judge plugins |
 | `evalforge workspace init/list/use <name>` | Manage per-project history databases |
 | `evalforge ci <suite>` | Run in CI mode (posts a PR comment when GitHub env vars are set) |
+| `evalforge retrieval compare <goldens.jsonl> <corpus.jsonl>` | A/B offline retrieval strategies; exits nonzero on aggregate regression |
+| `evalforge conversation run <scenario.yaml>` | Run and score a multi-turn scenario against any existing backend |
+| `evalforge conversation baseline/compare <report.json> --baseline <file>` | Save or gate a four-dimension conversational baseline |
 | `evalforge serve` | Start the FastAPI history API for the dashboard |
 
 ### Custom judge plugins
@@ -114,6 +121,45 @@ evalforge eval suite.yaml --format json --output ./reports        # produce a re
 evalforge baseline set ./reports/<report>.json --db history.db    # pin the baseline
 evalforge baseline compare ./reports/<new>.json --db history.db   # exits 1 on regression
 ```
+
+### Retrieval strategy A/B gate
+
+Golden questions use one JSON object per line with `id`, `query`, and
+`gold_contexts`. Corpus rows use `id` and `content`. Both built-in strategies are
+deterministic and need no API key, database, embedding model, or network:
+
+```bash
+evalforge retrieval compare goldens.jsonl corpus.jsonl \
+  --strategy-a term-frequency \
+  --strategy-b phrase-aware \
+  --top-k 3 --threshold 0.05 \
+  --output reports/retrieval-comparison.json
+```
+
+The command evaluates the same questions under both strategies, reports hit rate and
+mean reciprocal rank (MRR), and exits `1` when either candidate metric drops by more
+than the threshold. This makes the output suitable for a CI quality gate.
+
+### Multi-turn conversational evaluation
+
+Conversation YAML declares a persona, turn budget, and rubric. Adversarial personas
+react to the assistant's previous reply instead of replaying a fixed transcript.
+Reports retain the transcript and normalized `0.0`–`1.0` scores for safety, policy
+adherence, goal completion, and tone. A safety failure caps the overall score at
+`0.4`.
+
+```bash
+evalforge conversation run scenario.yaml --backend mock \
+  --output reports/conversation.json
+evalforge conversation baseline reports/conversation.json \
+  --baseline .evalforge/conversation-baseline.json
+evalforge conversation compare reports/conversation.json \
+  --baseline .evalforge/conversation-baseline.json --threshold 0.05
+```
+
+The `mock` backend keeps this workflow offline. Existing provider backends remain
+available, and the existing reporters, history API, and general suite-baseline flow
+are unchanged.
 
 ## Dashboard
 
@@ -240,6 +286,8 @@ Delivered:
 
 - ✅ **Custom judges**: plugin loader wired end-to-end into `evalforge eval`
 - ✅ **A/B / drift**: `evalforge drift` and `evalforge baseline compare` (file or history-backed)
+- ✅ **Golden retrieval gates**: offline strategy A/B with hit-rate/MRR CI regression
+- ✅ **Conversational evaluation**: adaptive personas, four-dimension scoring, and file baselines
 - ✅ **Scheduled evals**: `evalforge schedule` persists runs to history
 - ✅ **Dashboard**: Next.js report visualization with offline demo-mode
 

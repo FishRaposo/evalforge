@@ -445,6 +445,158 @@ def ci(
     console.print("[green]CI pipeline passed.[/green]")
 
 
+@app.command("retrieval")
+def retrieval_cmd(
+    action: str = typer.Argument(..., help="Action: compare"),
+    goldens_path: Path = typer.Argument(
+        ..., help="Golden-question JSONL file", exists=True
+    ),
+    corpus_path: Path = typer.Argument(..., help="Corpus JSONL file", exists=True),
+    strategy_a: str = typer.Option(
+        "term-frequency", "--strategy-a", help="Baseline retrieval strategy"
+    ),
+    strategy_b: str = typer.Option(
+        "phrase-aware", "--strategy-b", help="Candidate retrieval strategy"
+    ),
+    top_k: int = typer.Option(3, "--top-k", min=1, help="Documents per query"),
+    threshold: float = typer.Option(
+        0.0, "--threshold", min=0.0, help="Allowed aggregate metric drop"
+    ),
+    output: Path | None = typer.Option(
+        None, "--output", "-o", help="Write the JSON comparison to this path"
+    ),
+) -> None:
+    """Compare retrieval strategies over the same golden questions.
+
+    The command is deterministic and offline. It exits 1 when the candidate's
+    hit rate or mean reciprocal rank regresses beyond ``--threshold``.
+    """
+    import json
+
+    from evalforge.retrieval_evaluation import (
+        SUPPORTED_STRATEGIES,
+        compare_strategies,
+        load_corpus,
+        load_golden_questions,
+    )
+
+    if action != "compare":
+        console.print(f"[red]Unknown action: {action}[/red]")
+        raise typer.Exit(code=2)
+    if strategy_a not in SUPPORTED_STRATEGIES:
+        console.print(f"[red]Unsupported retrieval strategy: {strategy_a}[/red]")
+        raise typer.Exit(code=2)
+    if strategy_b not in SUPPORTED_STRATEGIES:
+        console.print(f"[red]Unsupported retrieval strategy: {strategy_b}[/red]")
+        raise typer.Exit(code=2)
+
+    try:
+        comparison = compare_strategies(
+            load_golden_questions(goldens_path),
+            load_corpus(corpus_path),
+            strategy_a,
+            strategy_b,
+            top_k=top_k,
+            threshold=threshold,
+        )
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+
+    rendered = json.dumps(comparison, indent=2)
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(rendered + "\n", encoding="utf-8")
+        console.print(f"[green]Comparison saved to {output}[/green]")
+    else:
+        console.print(rendered)
+
+    if comparison["regression"]["is_regression"]:
+        console.print("[red]Regression detected[/red]")
+        raise typer.Exit(code=1)
+    console.print("[green]No retrieval regression detected[/green]")
+
+
+@app.command("conversation")
+def conversation_cmd(
+    action: str = typer.Argument(..., help="Action: run, baseline, or compare"),
+    source_path: Path = typer.Argument(
+        ..., help="Scenario YAML for run; report JSON otherwise", exists=True
+    ),
+    backend: str = typer.Option("mock", "--backend", "-b", help="Backend to use"),
+    output: Path | None = typer.Option(
+        None, "--output", "-o", help="Output report or comparison JSON"
+    ),
+    baseline: Path | None = typer.Option(
+        None, "--baseline", help="Baseline JSON destination or comparison source"
+    ),
+    threshold: float = typer.Option(
+        0.05, "--threshold", min=0.0, help="Allowed score drop"
+    ),
+) -> None:
+    """Run conversational scenarios and manage their file baselines."""
+    from evalforge.conversation import (
+        ConversationRunner,
+        compare_conversation_reports,
+        load_conversation_report,
+        load_conversation_scenario,
+        render_comparison,
+        save_conversation_report,
+    )
+
+    if action == "run":
+        try:
+            backend_instance = build_backend(backend)
+            scenario = load_conversation_scenario(source_path)
+        except (ValueError, OSError) as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=2) from exc
+        report = _run_async(
+            ConversationRunner(
+                backend_instance, backend_name=backend
+            ).run(scenario)
+        )
+        destination = output or Path("reports") / f"{scenario.name}-conversation.json"
+        save_conversation_report(report, destination)
+        console.print(
+            f"[green]Conversation report saved to {destination} "
+            f"({len(report.turns)} turns, score {report.overall_score:.2f})[/green]"
+        )
+        return
+
+    if baseline is None:
+        console.print("[red]--baseline is required for baseline and compare[/red]")
+        raise typer.Exit(code=2)
+
+    try:
+        current = load_conversation_report(source_path)
+        if action == "baseline":
+            save_conversation_report(current, baseline)
+            console.print(f"[green]Conversation baseline saved to {baseline}[/green]")
+            return
+        if action == "compare":
+            comparison = compare_conversation_reports(
+                load_conversation_report(baseline), current, threshold=threshold
+            )
+            rendered = render_comparison(comparison)
+            if output is not None:
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text(rendered + "\n", encoding="utf-8")
+            else:
+                console.print(rendered)
+            if comparison["is_regression"]:
+                console.print("[red]Conversational regression detected[/red]")
+                raise typer.Exit(code=1)
+            console.print("[green]No conversational regression detected[/green]")
+            return
+    except (ValueError, OSError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+
+    console.print(f"[red]Unknown action: {action}[/red]")
+    raise typer.Exit(code=2)
+
+
 @app.command("baseline")
 def baseline_cmd(  # noqa: C901
     action: str = typer.Argument(..., help="Action: set or compare"),
