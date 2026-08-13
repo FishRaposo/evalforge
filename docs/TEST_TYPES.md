@@ -81,6 +81,16 @@ EvalForge supports multiple test types, each with a corresponding judge that eva
 
 **Scoring**: 1.0 if refusal is detected, 0.0 otherwise. Refusal is detected via common refusal phrases ("I cannot", "I'm not able to", "I won't", etc.).
 
+## Evidence and result metadata
+
+Every `TestResult` retains the existing pass/fail, score, response, judge detail,
+timing, and error fields. Backends may additionally provide `backend_metadata`
+such as provider/model, cache status, token usage, or a fallback path. This field
+is additive and is included in evidence reports after the bundle's recursive
+secret redaction rules are applied. The offline mock path records its model and
+marks its response as mock data; its latency is treated as runtime noise for
+reproducibility hashing.
+
 ---
 
 ## must_retrieve

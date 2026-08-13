@@ -13,6 +13,9 @@ records the engineering constraints behind the remaining work.
 - ✅ Baseline comparison, custom judge plugins, scheduled evaluation, workspaces,
   frontend demo mode, and the API-backed dashboard are wired end-to-end.
 - ✅ Semantic score-sensitive behavior is pinned by `tests/test_semantic_golden.py`.
+- ✅ The mock backend produces a portable evidence bundle with a redacted
+  manifest, SHA-256 checksums, stable reproducibility hash, and deterministic
+  drift additions/removals/score deltas (`make evidence`).
 
 ## Golden-output-gated follow-ups
 
@@ -25,6 +28,13 @@ Only pursue these changes with before/after fixtures over the committed example 
 
 The bespoke implementations stay in place if any migration changes stored scores,
 report shapes, or offline behavior.
+
+## Evidence-driven follow-ups
+
+The next bounded improvements are judge calibration (structured judge output,
+sample-count enforcement, and uncertainty fixtures) and formal agent trace
+schemas. Shared judge/client/database convergence remains deferred until those
+changes have golden-output compatibility evidence.
 
 ## Explicitly preserved
 

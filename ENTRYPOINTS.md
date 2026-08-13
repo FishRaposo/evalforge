@@ -4,6 +4,8 @@
 
 - **Install:** `pip install -e ".[dev,server,llm]"`
 - **Evaluate:** `evalforge eval example_suites/rag_basic.yaml --backend mock`
+- **Evidence:** `evalforge eval example_suites/rag_basic.yaml --backend mock --no-save --evidence-dir ./evidence/run`
+- **Verify evidence:** `evalforge evidence verify ./evidence/run`
 - **Evaluate from HuggingFace:** `evalforge eval dummy.yaml --from-hf natural_questions`
 - **CI mode:** `evalforge ci example_suites/rag_basic.yaml --backend mock`
 - **Baseline:** `evalforge baseline set reports/run_20240101.json`

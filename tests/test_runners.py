@@ -30,6 +30,7 @@ class TestRAGRunner:
         assert result.test_case_id == "rag-001"
         assert result.passed is True
         assert result.score == 1.0
+        assert result.backend_metadata["model"] == "mock"
 
     @pytest.mark.asyncio
     async def test_rag_runner_with_mock(self, mock_backend: MockBackend) -> None:

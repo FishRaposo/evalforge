@@ -28,11 +28,19 @@ def _report(results: list[TestResult], avg_score: float, pass_rate: float) -> Re
     )
 
 
-def test_new_test_in_current_is_ignored() -> None:
-    """Tests present only in the current report should not be flagged."""
+def test_added_and_removed_tests_are_reported() -> None:
+    """Suite shape changes should be explicit in evidence, not silently ignored."""
     detector = DriftDetector(threshold=0.1)
     baseline = _report(
-        [TestResult(test_case_id="a", test_case_name="A", passed=True, score=1.0)],
+        [
+            TestResult(test_case_id="a", test_case_name="A", passed=True, score=1.0),
+            TestResult(
+                test_case_id="removed",
+                test_case_name="Removed",
+                passed=True,
+                score=1.0,
+            ),
+        ],
         avg_score=1.0,
         pass_rate=1.0,
     )
@@ -45,8 +53,34 @@ def test_new_test_in_current_is_ignored() -> None:
         pass_rate=0.5,
     )
     result = detector.compare(baseline, current)
-    # "b" is new -> not a status change; only same-id flips are reported.
-    assert all(ct["test_case_id"] != "b" for ct in result.changed_tests)
+    assert result.added_tests == ["b"]
+    assert result.removed_tests == ["removed"]
+
+
+def test_score_deltas_are_reported_for_unchanged_status() -> None:
+    detector = DriftDetector(threshold=0.1)
+    baseline = _report(
+        [TestResult(test_case_id="a", test_case_name="A", passed=True, score=0.9)],
+        avg_score=0.9,
+        pass_rate=1.0,
+    )
+    current = _report(
+        [TestResult(test_case_id="a", test_case_name="A", passed=True, score=0.7)],
+        avg_score=0.7,
+        pass_rate=1.0,
+    )
+
+    result = detector.compare(baseline, current)
+
+    assert result.score_deltas == [
+        {
+            "test_case_id": "a",
+            "test_case_name": "A",
+            "baseline_score": 0.9,
+            "current_score": 0.7,
+            "score_delta": -0.2,
+        }
+    ]
 
 
 def test_pass_rate_regression_alone_triggers() -> None:

@@ -19,6 +19,9 @@ class DriftResult(BaseModel):
     avg_score_delta: float
     is_regression: bool
     changed_tests: list[dict[str, Any]] = Field(default_factory=list)
+    added_tests: list[str] = Field(default_factory=list)
+    removed_tests: list[str] = Field(default_factory=list)
+    score_deltas: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class DriftDetector:
@@ -34,6 +37,8 @@ class DriftDetector:
         )
 
         changed_tests = self._find_changed_tests(baseline, current)
+        baseline_ids = {result.test_case_id for result in baseline.results}
+        current_ids = {result.test_case_id for result in current.results}
 
         return DriftResult(
             suite_name=current.suite_name,
@@ -43,6 +48,9 @@ class DriftDetector:
             avg_score_delta=avg_score_delta,
             is_regression=is_regression,
             changed_tests=changed_tests,
+            added_tests=sorted(current_ids - baseline_ids),
+            removed_tests=sorted(baseline_ids - current_ids),
+            score_deltas=self._find_score_deltas(baseline, current),
         )
 
     def _find_changed_tests(
@@ -64,7 +72,9 @@ class DriftDetector:
                         "change": "pass_to_fail",
                         "baseline_score": baseline_result.score,
                         "current_score": current_result.score,
-                        "score_delta": current_result.score - baseline_result.score,
+                        "score_delta": round(
+                            current_result.score - baseline_result.score, 6
+                        ),
                     }
                 )
             elif not baseline_result.passed and current_result.passed:
@@ -75,11 +85,37 @@ class DriftDetector:
                         "change": "fail_to_pass",
                         "baseline_score": baseline_result.score,
                         "current_score": current_result.score,
-                        "score_delta": current_result.score - baseline_result.score,
+                        "score_delta": round(
+                            current_result.score - baseline_result.score, 6
+                        ),
                     }
                 )
 
-        return changed
+        return sorted(changed, key=lambda item: item["test_case_id"])
+
+    def _find_score_deltas(
+        self, baseline: Report, current: Report
+    ) -> list[dict[str, Any]]:
+        """Return deterministic score deltas for test IDs in both reports."""
+        baseline_by_id = {result.test_case_id: result for result in baseline.results}
+        current_by_id = {result.test_case_id: result for result in current.results}
+        deltas: list[dict[str, Any]] = []
+        for test_id in sorted(baseline_by_id.keys() & current_by_id.keys()):
+            baseline_result = baseline_by_id[test_id]
+            current_result = current_by_id[test_id]
+            score_delta = round(current_result.score - baseline_result.score, 6)
+            if score_delta == 0:
+                continue
+            deltas.append(
+                {
+                    "test_case_id": test_id,
+                    "test_case_name": current_result.test_case_name,
+                    "baseline_score": baseline_result.score,
+                    "current_score": current_result.score,
+                    "score_delta": score_delta,
+                }
+            )
+        return deltas
 
     @staticmethod
     def load_report(path: Path) -> Report:

@@ -98,6 +98,20 @@ Slack/Discord notifiers are no-ops unless a webhook URL is configured, preservin
 offline-first behavior. Webhook URLs are secrets — store them in the environment, not in
 suite files.
 
+## Evidence bundles
+
+`evalforge eval --evidence-dir` copies configuration into `manifest.json` only
+after recursively redacting secret-shaped keys such as API keys, tokens,
+authorization headers, passwords, cookies, and webhook URLs. Review the bundle
+before sharing it: custom backends may attach provider metadata, and redaction is
+key-based rather than a guarantee that arbitrary response text contains no
+secrets. The verifier checks SHA-256 integrity and report consistency; it does
+not provide cryptographic signing or authenticity for an untrusted Git checkout.
+
+The canonical `make evidence` path uses the mock backend, no credentials, and no
+network. Keep real-provider evidence opt-in and treat its reports as sensitive
+operational data.
+
 ## Security checklist
 
 - [ ] CI uses the `mock` backend for PRs (no secrets in untrusted contexts)
@@ -107,3 +121,5 @@ suite files.
 - [ ] The history API is bound to localhost or fronted by auth if exposed
 - [ ] Webhook URLs come from the environment, not from files in the repo
 - [ ] `EVALFORGE_OPENAI_BASE_URL` points only at endpoints you trust
+- [ ] Evidence bundles are verified before review or publication, and custom
+      backend metadata has been checked for sensitive values

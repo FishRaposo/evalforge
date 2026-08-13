@@ -98,6 +98,7 @@ class BaseRunner(ABC):
         score: float,
         response: str,
         judge_details: dict[str, Any] | None = None,
+        backend_metadata: dict[str, Any] | None = None,
         error: str | None = None,
         elapsed_ms: float = 0.0,
     ) -> TestResult:
@@ -109,6 +110,7 @@ class BaseRunner(ABC):
             score: Numerical score from the judge.
             response: The raw response from the backend.
             judge_details: Detailed judge output.
+            backend_metadata: Provider metadata attached to the backend response.
             error: Optional error message.
             elapsed_ms: Execution time in milliseconds.
 
@@ -122,6 +124,7 @@ class BaseRunner(ABC):
             score=score,
             actual_response=response,
             judge_details=judge_details or {},
+            backend_metadata=backend_metadata or {},
             execution_time_ms=elapsed_ms,
             error=error,
         )

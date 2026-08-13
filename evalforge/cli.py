@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -12,6 +13,13 @@ from rich.console import Console
 from rich.table import Table
 
 from evalforge import __version__
+from evalforge.evidence import (
+    EvidenceVerificationError,
+    build_evidence_bundle,
+    resolve_git_sha,
+    verify_evidence_bundle,
+)
+from evalforge.execution import resolve_mode
 
 if TYPE_CHECKING:
     from evalforge.backends.base import BaseBackend
@@ -28,6 +36,8 @@ app = typer.Typer(
     ),
     add_completion=False,
 )
+evidence_app = typer.Typer(help="Create and verify reproducible evidence bundles.")
+app.add_typer(evidence_app, name="evidence")
 console = Console()
 
 _T = TypeVar("_T")
@@ -128,6 +138,25 @@ def eval(  # noqa: C901
         "--judge-plugin-type",
         help="Test-case type the custom judge handles (e.g. semantic_answer)",
     ),
+    evidence_dir: Path | None = typer.Option(
+        None,
+        "--evidence-dir",
+        help="Write a reproducible evidence bundle to this directory",
+    ),
+    baseline: Path | None = typer.Option(
+        None,
+        "--baseline",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        help="Compare the report with this baseline when writing evidence",
+    ),
+    drift_threshold: float = typer.Option(
+        0.1,
+        "--drift-threshold",
+        min=0.0,
+        help="Maximum allowed pass-rate or average-score drop",
+    ),
 ) -> None:
     """Run an evaluation suite against an AI backend.
 
@@ -144,9 +173,11 @@ def eval(  # noqa: C901
     from evalforge.reporters.markdown import MarkdownReporter
     from evalforge.runners.rag_runner import RAGRunner
 
+    started_at = datetime.now(timezone.utc)
     console.print(f"\n[bold blue]EvalForge[/bold blue] v{__version__}")
 
     loader = SuiteLoader()
+    evidence_suite_path = suite_path
 
     if from_hf:
         from evalforge.datasets.huggingface_loader import HuggingFaceDatasetLoader
@@ -158,6 +189,7 @@ def eval(  # noqa: C901
         tmp_path = Path(tempfile.gettempdir()) / f"evalforge_hf_{from_hf}.yaml"
         _run_async(hf.create_test_suite(from_hf, str(tmp_path), max_samples=20))
         suite = loader.load_suite(tmp_path)
+        evidence_suite_path = tmp_path
     else:
         console.print(f"Loading suite: {suite_path}")
         suite = loader.load_suite(suite_path)
@@ -214,8 +246,25 @@ def eval(  # noqa: C901
         suite_name=suite.name,
         summary=summary,
         results=results,
-        metadata={"backend": backend, "suite_path": str(suite_path)},
+        metadata={
+            "backend": backend,
+            "mode": resolve_mode(),
+            "suite_path": str(suite_path),
+        },
     )
+
+    drift_result = None
+    if baseline is not None:
+        from evalforge.drift import DriftDetector
+
+        try:
+            baseline_report = DriftDetector.load_report(baseline)
+            drift_result = DriftDetector(threshold=drift_threshold).compare(
+                baseline_report, report
+            )
+        except (OSError, ValueError) as exc:
+            console.print(f"[red]Could not compare baseline: {exc}[/red]")
+            raise typer.Exit(code=2) from exc
 
     if save:
         try:
@@ -239,6 +288,36 @@ def eval(  # noqa: C901
     output_dir = output or Path("./reports")
     report_path = reporter.generate(report, output_dir)
 
+    if evidence_dir is not None:
+        from evalforge.config import get_settings
+
+        model = next(
+            (
+                str(result.backend_metadata["model"])
+                for result in results
+                if result.backend_metadata.get("model")
+            ),
+            None,
+        )
+        manifest = build_evidence_bundle(
+            output_dir=evidence_dir,
+            report=report,
+            suite_path=evidence_suite_path,
+            backend=backend,
+            mode=resolve_mode(),
+            model=model,
+            config=get_settings().model_dump(mode="json"),
+            baseline_path=baseline,
+            drift=drift_result,
+            git_sha=resolve_git_sha(evidence_suite_path.parent),
+            started_at=started_at,
+            completed_at=datetime.now(timezone.utc),
+        )
+        console.print(
+            f"[green]Evidence bundle saved:[/green] {evidence_dir} "
+            f"({manifest.reproducibility_hash[:12]})"
+        )
+
     table = Table(title="Evaluation Results")
     table.add_column("ID", style="cyan")
     table.add_column("Name", style="white")
@@ -258,6 +337,32 @@ def eval(  # noqa: C901
             f"[red]Pass rate {pass_rate:.1%} below threshold {fail_threshold:.1%}[/red]"
         )
         raise typer.Exit(code=1)
+
+    if drift_result is not None and drift_result.is_regression:
+        console.print("[red]Regression detected vs evidence baseline[/red]")
+        raise typer.Exit(code=1)
+
+
+@evidence_app.command("verify")
+def evidence_verify(
+    directory: Path = typer.Argument(
+        ...,
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        help="Evidence bundle directory to verify",
+    ),
+) -> None:
+    """Verify an evidence bundle's manifest, checksums, and report hash."""
+    try:
+        manifest = verify_evidence_bundle(directory)
+    except EvidenceVerificationError as exc:
+        console.print(f"[red]Evidence verification failed: {exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    console.print(
+        f"[green]Evidence verified:[/green] {directory} "
+        f"({manifest.reproducibility_hash[:12]})"
+    )
 
 
 @app.command(name="list-suites")
@@ -344,7 +449,7 @@ test_cases:
 
 
 @app.command()
-def drift(
+def drift(  # noqa: C901
     baseline: str = typer.Argument(help="Path to baseline report JSON"),
     current: str = typer.Argument(help="Path to current report JSON"),
     threshold: float = typer.Option(0.1, help="Regression threshold"),
@@ -387,6 +492,9 @@ def drift(
         "[red]YES[/red]" if result.is_regression else "[green]NO[/green]",
     )
     table.add_row("Changed Tests", str(len(result.changed_tests)))
+    table.add_row("Added Tests", str(len(result.added_tests)))
+    table.add_row("Removed Tests", str(len(result.removed_tests)))
+    table.add_row("Score Deltas", str(len(result.score_deltas)))
 
     console.print(table)
 
@@ -407,6 +515,34 @@ def drift(
             )
 
         console.print(change_table)
+
+    if result.added_tests or result.removed_tests:
+        shape_table = Table(title="Suite Shape Changes")
+        shape_table.add_column("Change", style="cyan")
+        shape_table.add_column("Test IDs", style="white")
+        if result.added_tests:
+            shape_table.add_row("Added", ", ".join(result.added_tests))
+        if result.removed_tests:
+            shape_table.add_row("Removed", ", ".join(result.removed_tests))
+        console.print(shape_table)
+
+    if result.score_deltas:
+        score_table = Table(title="Per-test Score Deltas")
+        score_table.add_column("ID", style="cyan")
+        score_table.add_column("Name", style="white")
+        score_table.add_column("Baseline", style="magenta")
+        score_table.add_column("Current", style="magenta")
+        score_table.add_column("Delta", style="bold")
+        for delta in result.score_deltas:
+            change_color = "red" if delta["score_delta"] < 0 else "green"
+            score_table.add_row(
+                delta["test_case_id"],
+                delta["test_case_name"],
+                f"{delta['baseline_score']:.4f}",
+                f"{delta['current_score']:.4f}",
+                f"[{change_color}]{delta['score_delta']:+.4f}[/{change_color}]",
+            )
+        console.print(score_table)
 
     if result.is_regression:
         console.print(

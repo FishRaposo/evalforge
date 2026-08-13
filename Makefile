@@ -1,6 +1,6 @@
 PYTHON := python
 
-.PHONY: install dev test lint format typecheck demo serve docker-up docker-down clean \
+.PHONY: install dev test lint format typecheck demo evidence serve docker-up docker-down clean \
         help eval-basic eval-citation eval-compliance eval-all build-frontend test-e2e
 
 install: ## Install EvalForge (dev + server + llm extras)
@@ -22,6 +22,9 @@ typecheck: ## Type-check with pyright
 
 demo: ## Run the offline mock-backend evaluation demo
 	$(PYTHON) examples/run_demo.py
+
+evidence: ## Build and verify the canonical offline portfolio evidence bundle
+	$(PYTHON) scripts/check_portfolio_evidence.py
 
 serve: ## Start the EvalForge history API
 	evalforge serve

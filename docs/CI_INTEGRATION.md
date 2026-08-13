@@ -4,6 +4,11 @@
 
 EvalForge integrates seamlessly with GitHub Actions to run evaluations on every push and pull request.
 
+The repository's required CI path is credential-free: it runs the mock backend,
+builds the evidence bundle, verifies its checksums, compares the reproducibility
+hash with the committed golden fixture, and uploads the bundle. Real-provider
+jobs are optional and should use protected secrets only.
+
 ### Quick Setup
 
 1. Add your OpenAI API key as a repository secret:
@@ -89,6 +94,9 @@ Reports are uploaded as CI artifacts for review:
 - **JSON reports**: Can be consumed by downstream tooling or dashboards
 - **Markdown reports**: Easy to read in the GitHub UI
 - **HTML reports**: Can be deployed to a static site for team review
+- **Evidence bundles**: Include the manifest, canonical reports, optional drift
+  details, and SHA-256 checksums; `evalforge evidence verify <dir>` is the local
+  replay/integrity gate.
 
 ### Downloading Artifacts
 

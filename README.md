@@ -10,7 +10,7 @@ The config/server subset and its license details are documented in
 
 Define test suites in YAML, evaluate retrieval correctness, citation quality, and refusal behavior — then catch quality drift before it reaches production.
 
-[Quick Demo](#quick-demo) • [Architecture](#architecture) • [CLI Guide](#local-quickstart)
+[Quick Demo](#quick-demo) • [Architecture](#architecture) • [CLI Guide](#local-quickstart) • [Evidence bundles](docs/EVIDENCE.md)
 
 ---
 
@@ -87,6 +87,9 @@ evalforge eval example_suites/rag_basic.yaml
 
 # Run with specific backend and output format
 evalforge eval example_suites/rag_basic.yaml --backend openai --format json --output ./reports
+
+# Build and verify a credential-free portfolio evidence bundle
+make evidence
 ```
 
 ## CLI commands
@@ -94,6 +97,8 @@ evalforge eval example_suites/rag_basic.yaml --backend openai --format json --ou
 | Command | What it does |
 |---------|--------------|
 | `evalforge eval <suite>` | Run a suite against a backend; writes a report and (by default) saves to history |
+| `evalforge eval <suite> --evidence-dir <dir>` | Write a reproducible manifest, canonical report, Markdown report, and checksums (plus optional drift data) |
+| `evalforge evidence verify <dir>` | Verify evidence manifest, payload checksums, report schema, and reproducibility hash |
 | `evalforge eval <suite> --judge-plugin <file> --judge-plugin-type <type>` | Override a judge for one test-case type with a custom plugin |
 | `evalforge drift <baseline.json> <current.json>` | Compare two report files; exits non-zero on regression |
 | `evalforge baseline set <report> [--db <path>]` | Save a report as the baseline (file by default, history store with `--db`) |
@@ -125,6 +130,26 @@ evalforge eval suite.yaml --format json --output ./reports        # produce a re
 evalforge baseline set ./reports/<report>.json --db history.db    # pin the baseline
 evalforge baseline compare ./reports/<new>.json --db history.db   # exits 1 on regression
 ```
+
+### Evidence bundles
+
+Evidence bundles turn an offline run into a reviewable proof package. The mock
+backend is the canonical path and requires no credentials or network:
+
+```bash
+make evidence
+# or choose a directory explicitly:
+evalforge eval example_suites/rag_basic.yaml \
+  --backend mock --no-save --format json --output ./reports \
+  --evidence-dir ./evidence/run
+evalforge evidence verify ./evidence/run
+```
+
+The bundle records the suite, report, environment, and decision hashes while
+redacting secret-shaped configuration keys. Its reproducibility hash excludes
+timestamps, durations, latency, and generated paths, so two identical offline
+runs can be compared directly. See [the evidence format guide](docs/EVIDENCE.md)
+for the manifest schema, drift fields, replay workflow, and redaction rules.
 
 ### Retrieval strategy A/B gate
 

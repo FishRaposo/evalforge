@@ -117,6 +117,7 @@ class AgentRunner(BaseRunner):
             score=score,
             response=final_response,
             judge_details=details,
+            backend_metadata=response.metadata,
             elapsed_ms=elapsed,
         )
 

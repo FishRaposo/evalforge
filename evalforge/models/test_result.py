@@ -32,6 +32,10 @@ class TestResult(BaseModel):
     judge_details: dict[str, Any] = Field(
         default_factory=dict, description="Judge evaluation details"
     )
+    backend_metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Provider metadata such as model, usage, cache, or fallback mode",
+    )
     execution_time_ms: float = Field(
         default=0.0, description="Execution time in milliseconds"
     )

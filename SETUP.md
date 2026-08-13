@@ -17,6 +17,9 @@ pip install -e ".[dev,server,llm]"
 # Mock backend (offline, no API keys)
 evalforge eval example_suites/rag_basic.yaml --backend mock
 
+# Portfolio evidence (offline, credential-free, and checksum-verified)
+make evidence
+
 # OpenAI backend (requires EVALFORGE_OPENAI_API_KEY)
 evalforge eval example_suites/rag_basic.yaml --backend openai
 ```
@@ -31,6 +34,17 @@ make test
 
 ```bash
 evalforge eval example_suites/rag_basic.yaml --format html --output reports/
+
+## Generate and replay evidence
+
+```bash
+evalforge eval example_suites/rag_basic.yaml --backend mock --no-save \
+  --format json --output reports/ --evidence-dir evidence/run
+evalforge evidence verify evidence/run
+```
+
+See [docs/EVIDENCE.md](docs/EVIDENCE.md) for the bundle schema, redaction rules,
+and reproducibility workflow.
 ```
 
 ## Dashboard Setup

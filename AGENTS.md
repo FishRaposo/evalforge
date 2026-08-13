@@ -20,7 +20,7 @@ evalforge/
 │   ├── retrieval_evaluation.py   #   offline golden retrieval A/B + CI metric gate
 │   ├── conversation.py           #   multi-turn personas, rubric, baseline diff
 │   ├── judges/  backends/  runners/  reporters/  compliance/  loader/
-│   ├── datasets/  models/  drift.py  execution.py  plugins.py
+│   ├── datasets/  models/  drift.py  evidence.py  execution.py  plugins.py
 │   ├── scheduler/  notifications/  workspaces/  ci/
 │   ├── storage/history.py        #   SQLite history store (offline-first)
 │   └── server/app.py             #   FastAPI history API (vendored middleware + handler)
@@ -28,6 +28,7 @@ evalforge/
 ├── example_suites/  rule_packs/  data/  reports/  tests/  scripts/  docs/
 │   └── data/migrations/2026-08-12-.../ # versioned port fixtures + provenance manifest
 ├── examples/run_demo.py          # offline mock-backend evaluation demo
+├── scripts/check_portfolio_evidence.py  # offline golden evidence CI/portfolio gate
 ├── docker-compose.yml            # OPTIONAL pgvector + redis (CLI/server default to SQLite)
 ├── Makefile  ruff.toml  pyrightconfig.json  pyproject.toml  requirements.txt  .env.example
 └── .github/workflows/ci.yml
@@ -61,14 +62,16 @@ unit tests that lock its `_JSONFormatter`).
 
 ```bash
 make install      # pip install -e '.[dev,server,llm]'
-make test         # pytest  -> 202 passing at the finalization baseline
+make test         # pytest  -> 214 passing at the finalization baseline
 make lint         # ruff check evalforge tests scripts
 make format       # ruff format ...
 make typecheck    # pyright evalforge
 make demo         # offline mock-backend evaluation of example_suites/rag_basic.yaml
+make evidence     # build, verify, and compare the canonical offline evidence hash
 make serve        # evalforge serve (history API)
 make eval-basic   # evalforge eval example_suites/rag_basic.yaml
 evalforge eval <suite.yaml> --backend mock   # the headline CLI
+evalforge evidence verify <directory>         # verify a generated evidence bundle
 evalforge retrieval compare <goldens.jsonl> <corpus.jsonl> --output <report.json>
 evalforge conversation run <scenario.yaml> --backend mock --output <report.json>
 evalforge conversation baseline/compare <report.json> --baseline <baseline.json>
@@ -88,9 +91,10 @@ offline synthetic fallback, so the suite runs without it.
 
 **Functional and self-contained.** Config extends the vendored `BaseAppConfig` with
 the `EVALFORGE_` prefix preserved; the history API uses the vendored middleware and
-error handler. The isolated finalization baseline is **202 passing tests**, with Ruff
-and Pyright clean. The Next.js dashboard is covered by unit, build, and Playwright
-smoke gates.
+error handler. The mock backend can emit a checksum-verified evidence bundle with a
+stable reproducibility hash and deterministic drift details. The isolated
+finalization baseline is **214 passing tests**, with Ruff and Pyright clean. The
+Next.js dashboard is covered by unit, build, and Playwright smoke gates.
 
 ## Follow-ups (not done now)
 

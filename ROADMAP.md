@@ -19,6 +19,8 @@ enterprise workflow features during portfolio finalization.
   production build, and Playwright smoke coverage
 - [x] Self-contained packaging with the approved shared-infrastructure subset vendored
   under `evalforge/shared_core/`
+- [x] Offline evidence bundles with canonical reports, redacted manifests, SHA-256
+  verification, reproducibility hashes, and deterministic drift details
 
 ## Intentionally deferred
 
@@ -37,3 +39,5 @@ that stored scores and report contracts do not change.
 
 Team workspaces, hosted scheduling, Slack/Discord expansion, and multi-model/prompt
 versioning are product directions, not completion blockers for this portfolio piece.
+Judge calibration and formal agent tracing remain the next evidence-driven
+engineering priorities before any shared judge/client/database convergence.

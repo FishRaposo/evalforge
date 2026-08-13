@@ -93,6 +93,7 @@ class RAGRunner(BaseRunner):
             score=judge_result.score,
             response=response.content,
             judge_details=judge_result.details,
+            backend_metadata=response.metadata,
             elapsed_ms=elapsed,
         )
 
