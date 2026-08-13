@@ -795,6 +795,9 @@ def baseline_cmd(  # noqa: C901
             console.print(f"Pass rate delta: {drift_result.pass_rate_delta:+.2%}")
             console.print(f"Avg score delta: {drift_result.avg_score_delta:+.4f}")
             console.print(f"Changed tests: {len(drift_result.changed_tests)}")
+            console.print(f"Added tests: {len(drift_result.added_tests)}")
+            console.print(f"Removed tests: {len(drift_result.removed_tests)}")
+            console.print(f"Score deltas: {len(drift_result.score_deltas)}")
             if drift_result.is_regression:
                 console.print("[red]Regression detected vs stored baseline[/red]")
                 raise typer.Exit(code=1)
@@ -830,6 +833,9 @@ def baseline_cmd(  # noqa: C901
 
         console.print(f"Pass rate delta: {drift_result.pass_rate_delta:+.2%}")
         console.print(f"Avg score delta: {drift_result.avg_score_delta:+.2%}")
+        console.print(f"Added tests: {len(drift_result.added_tests)}")
+        console.print(f"Removed tests: {len(drift_result.removed_tests)}")
+        console.print(f"Score deltas: {len(drift_result.score_deltas)}")
         if drift_result.is_regression:
             console.print("[red]Regression detected vs baseline[/red]")
             raise typer.Exit(code=1)
