@@ -2,7 +2,7 @@
 
 ## CLI
 
-- **Install:** `pip install -e ".[dev]"`
+- **Install:** `pip install -e ".[dev,server,llm]"`
 - **Evaluate:** `evalforge eval example_suites/rag_basic.yaml --backend mock`
 - **Evaluate from HuggingFace:** `evalforge eval dummy.yaml --from-hf natural_questions`
 - **CI mode:** `evalforge ci example_suites/rag_basic.yaml --backend mock`

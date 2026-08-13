@@ -26,7 +26,9 @@ class SimpleScheduler:
             from apscheduler.schedulers.background import BackgroundScheduler
 
             self._scheduler = BackgroundScheduler()
-            self._scheduler.start()
+            scheduler = self._scheduler
+            if scheduler is not None:
+                scheduler.start()
         except ImportError:
             logger.warning(
                 "apscheduler not installed; scheduled jobs will run immediately"
@@ -45,13 +47,15 @@ class SimpleScheduler:
             trigger: APScheduler trigger type (e.g. ``interval``, ``cron``).
             **kwargs: Trigger-specific arguments (e.g. ``minutes=30``).
         """
-        if self._scheduler is not None:
-            self._scheduler.add_job(func, trigger=trigger, **kwargs)
+        scheduler = self._scheduler
+        if scheduler is not None:
+            scheduler.add_job(func, trigger=trigger, **kwargs)
         else:
             logger.info("Running job immediately (offline mode)")
             func()
 
     def shutdown(self) -> None:
         """Stop the scheduler."""
-        if self._scheduler is not None:
-            self._scheduler.shutdown()
+        scheduler = self._scheduler
+        if scheduler is not None:
+            scheduler.shutdown()

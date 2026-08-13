@@ -87,9 +87,10 @@ review their plugin files exactly as you would review a pull request.
 ## History API
 
 The FastAPI history API (`evalforge serve`) binds to `127.0.0.1` by default and is meant
-for local dashboard use. It uses `shared_core` request-logging middleware and the shared
-application error handler (so internal errors are not leaked verbatim). If you expose it
-beyond localhost, put it behind an authenticating reverse proxy — it has no built-in auth.
+for local dashboard use. It uses the vendored `evalforge.shared_core` request-logging
+middleware and application error handler (so internal errors are not leaked verbatim).
+If you expose it beyond localhost, put it behind an authenticating reverse proxy — it
+has no built-in auth.
 
 ## Webhooks
 

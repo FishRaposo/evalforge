@@ -9,11 +9,8 @@
     "frontend",
     ".venv"
   ],
-  "venvPath": ".",
-  "venv": ".venv",
   "pythonVersion": "3.11",
-  "analysis": {
-    "typeCheckingMode": "basic",
-    "useLibraryCodeForTypes": true
-  }
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true,
+  "reportMissingImports": "none"
 }

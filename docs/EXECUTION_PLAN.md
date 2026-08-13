@@ -1,4 +1,8 @@
-# Execution Plan
+# Execution Plan (historical record)
+
+> This document records the earlier comprehensive-bar pass and its verification
+> snapshot. It is retained for provenance; current capability and remaining work live
+> in [ROADMAP.md](../ROADMAP.md) and [docs/roadmap.md](roadmap.md).
 
 This document records the plan and outcome of raising EvalForge to the comprehensive
 quality bar without regressing the migrated, already-green project. It complements

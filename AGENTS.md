@@ -6,7 +6,8 @@ EvalForge is a **CLI-first regression-testing harness** for RAG and agentic AI s
 YAML-defined suites, pluggable judges (exact/semantic/citation/refusal/retrieval/
 forbidden/structured), drift detection, a deterministic compliance rule engine, and
 multiple report formats. It also ships a small FastAPI **history API** and a Next.js
-dashboard. Migrated out of `General Projects/` onto the `shared_core` standard.
+dashboard. The config/server subset of the former `shared_core` standard is vendored
+under `evalforge/shared_core/` so a checkout is independently installable.
 
 ## Layout (CLI-first package)
 
@@ -22,7 +23,7 @@ evalforge/
 │   ├── datasets/  models/  drift.py  execution.py  plugins.py
 │   ├── scheduler/  notifications/  workspaces/  ci/
 │   ├── storage/history.py        #   SQLite history store (offline-first)
-│   └── server/app.py             #   FastAPI history API (shared_core middleware + handler)
+│   └── server/app.py             #   FastAPI history API (vendored middleware + handler)
 ├── frontend/                     # Next.js dashboard — KEPT as-is
 ├── example_suites/  rule_packs/  data/  reports/  tests/  scripts/  docs/
 │   └── data/migrations/2026-08-12-.../ # versioned port fixtures + provenance manifest
@@ -38,12 +39,16 @@ not a FastAPI service. The package stays at the repo root (it is `pip install`-a
 history API. Ruff is configured at the repo root (`ruff.toml`); pytest config stays in
 `pyproject.toml`.
 
-## shared-core adoption
+## Vendored shared-core subset
 
 | Bespoke (before) | Now |
 |---|---|
 | `Settings(BaseSettings)` | `Settings(BaseAppConfig)` — keeps the `EVALFORGE_` env prefix + domain knobs; `OPENAI_API_KEY` overridden to plain `str` |
-| `server/app.py` (no middleware) | + `shared_core.errors.application_error_handler` + `shared_core.logging.RequestLoggingMiddleware` |
+| `server/app.py` (no middleware) | + vendored `errors.application_error_handler` + `logging.RequestLoggingMiddleware` |
+
+The vendored files are the exact `config`, `errors`, and `logging` subset from the
+archived `FishRaposo/operator-shared-core` v1.3.0 commit recorded in
+`THIRD_PARTY_NOTICES.md`. No sibling checkout or Git URL is required.
 
 **Preserved domain value (tested, score-sensitive — intentionally not rerouted):** the 8
 judges + registry, the backends (mock/openai/anthropic/litellm/hf), runners, reporters
@@ -55,8 +60,8 @@ unit tests that lock its `_JSONFormatter`).
 ## Commands
 
 ```bash
-make install      # pip install -e ../shared-core; pip install -e '.[dev,server,llm]'
-make test         # pytest  -> 146 passing
+make install      # pip install -e '.[dev,server,llm]'
+make test         # pytest  -> 202 passing at the finalization baseline
 make lint         # ruff check evalforge tests scripts
 make format       # ruff format ...
 make typecheck    # pyright evalforge
@@ -74,20 +79,18 @@ The 2026-08-12 retrieval/conversation fixtures are durable repository assets und
 manifest, retrieval goldens/corpus, scenario/persona/rubric YAML, baseline pair, and
 expected diff synchronized with their focused tests and migration provenance doc.
 
-Local verification uses `.venv` at the repo root (shared-core editable + `.[dev,server,llm]`).
+Local verification uses a virtual environment with `.[dev,server,llm]`; the vendored
+subset is installed as part of the EvalForge package.
 The heavy `hf` extra (datasets/transformers/torch) is optional — the HF loader has an
 offline synthetic fallback, so the suite runs without it.
 
 ## Current State
 
-**Functional and migrated.** Config extends `BaseAppConfig` (prefix preserved); the
-history API uses `shared_core` middleware + error handler. The last verified pre-port
-repository state recorded **189 passing tests**. The retrieval/conversation port adds
-eleven focused tests, but the 2026-08-12 consolidation environment had no repository
-`.venv` and system Python lacked `pydantic`, so that updated total was not executed;
-see `.portfolio-audit-work/reports/task-5-evalforge-report.md`. Dependency-free Python
-compilation and the retrieval-core behavior check passed. The Next.js `frontend/` is
-unchanged.
+**Functional and self-contained.** Config extends the vendored `BaseAppConfig` with
+the `EVALFORGE_` prefix preserved; the history API uses the vendored middleware and
+error handler. The isolated finalization baseline is **202 passing tests**, with Ruff
+and Pyright clean. The Next.js dashboard is covered by unit, build, and Playwright
+smoke gates.
 
 ## Follow-ups (not done now)
 

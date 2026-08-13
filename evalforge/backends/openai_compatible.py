@@ -15,7 +15,8 @@ from evalforge.config import get_settings
 def _is_retryable_error(exc: BaseException) -> bool:
     """Return True for 429 or 5xx HTTP status errors."""
     if isinstance(exc, httpx.HTTPStatusError):
-        return exc.response.status_code == 429 or exc.response.status_code >= 500
+        status_code = getattr(getattr(exc, "response", None), "status_code", 0)
+        return status_code == 429 or status_code >= 500
     return False
 
 

@@ -132,7 +132,7 @@ EvalForge supports multiple test types, each with a corresponding judge that eva
 
 **Purpose**: Verify the response includes required fields in a structured format.
 
-**Judge**: Built into `BaseRunner` with schema validation
+**Judge**: `StructuredOutputJudge` with schema validation
 
 **Example**:
 ```yaml

@@ -22,7 +22,10 @@ if TYPE_CHECKING:
 
 app = typer.Typer(
     name="evalforge",
-    help="A practical regression-testing harness for RAG and agentic AI systems.",
+    help=(
+        "Regression testing for RAG and agentic AI: retrieval and conversational "
+        "evaluations."
+    ),
     add_completion=False,
 )
 console = Console()
@@ -552,9 +555,7 @@ def conversation_cmd(
             console.print(f"[red]{exc}[/red]")
             raise typer.Exit(code=2) from exc
         report = _run_async(
-            ConversationRunner(
-                backend_instance, backend_name=backend
-            ).run(scenario)
+            ConversationRunner(backend_instance, backend_name=backend).run(scenario)
         )
         destination = output or Path("reports") / f"{scenario.name}-conversation.json"
         save_conversation_report(report, destination)

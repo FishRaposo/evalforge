@@ -7,9 +7,9 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from shared_core.errors import BaseApplicationError, application_error_handler
-from shared_core.logging import RequestLoggingMiddleware
 
+from evalforge.shared_core.errors import BaseApplicationError, application_error_handler
+from evalforge.shared_core.logging import RequestLoggingMiddleware
 from evalforge.storage.history import HistoryStore
 
 

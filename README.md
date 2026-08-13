@@ -1,8 +1,12 @@
 # EvalForge
 
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]() [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)]() [![Python](https://img.shields.io/badge/python-3.11-blue)]() [![CLI](https://img.shields.io/badge/CLI-4A154B?logo=powershell)]()
+[![CI](https://github.com/FishRaposo/evalforge/actions/workflows/ci.yml/badge.svg)](https://github.com/FishRaposo/evalforge/actions/workflows/ci.yml) [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]() [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Regression testing framework for RAG and agentic AI systems.**
+**Regression testing for RAG and agentic AI: retrieval and conversational evaluations.**
+
+Vendored from the archived `FishRaposo/operator-shared-core` (v1.3.0) on 2026-08-13.
+The config/server subset and its license details are documented in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Define test suites in YAML, evaluate retrieval correctness, citation quality, and refusal behavior — then catch quality drift before it reaches production.
 
@@ -72,8 +76,8 @@ graph LR
 ## Local quickstart
 
 ```bash
-# Install
-pip install -e .
+# Install the full local verification surface
+pip install -e ".[dev,server,llm]"
 
 # Create an example test suite
 evalforge init
@@ -176,7 +180,7 @@ A Next.js dashboard (`frontend/`) visualizes run history and run comparisons.
 
 ```bash
 evalforge serve                 # history API on :8000
-cd frontend && npm install && npm run dev   # dashboard on :3002
+cd frontend && npm ci && npm run dev   # dashboard on :3002
 ```
 
 The dashboard is **offline-first**: if the history API is unreachable it transparently
@@ -252,7 +256,7 @@ EvalForge tests itself using its own patterns:
 - **Unit tests**: Each judge, runner, and reporter has isolated tests
 - **Integration tests**: End-to-end suites run against the mock backend
 - **Self-evaluation**: The example test suites serve as integration benchmarks
-- **Type checking**: Full mypy strict mode coverage
+- **Static checks**: Ruff lint/format gates and Pyright type checking
 - **CI pipeline**: Every PR runs the full test suite plus example evaluations
 
 ## Deployment notes
@@ -304,8 +308,8 @@ Planned:
 
 - **Multi-model comparison**: Evaluate across providers simultaneously
 - **Prompt versioning**: Track which prompts produced which results
-- **Convergence onto `shared_core`** (golden-output-gated — see
-  [docs/roadmap.md](docs/roadmap.md))
+- **Additional shared-infrastructure convergence only when golden outputs remain
+  identical** (see [docs/roadmap.md](docs/roadmap.md))
 
 ## What this project demonstrates
 

@@ -40,13 +40,17 @@ class AnthropicBackend(BaseBackend):
         if self._client is None:
             import anthropic
 
-            self._client = anthropic.AsyncAnthropic(api_key=self._api_key)
+            anthropic_module: Any = anthropic
+            client_factory = anthropic_module.AsyncAnthropic
+            self._client = client_factory(api_key=self._api_key)
 
+        client = self._client
+        assert client is not None
         messages = [{"role": "user", "content": prompt}]
         if context and "history" in context:
             messages = context["history"] + messages
 
-        response = await self._client.messages.create(
+        response = await client.messages.create(
             model=self._model,
             max_tokens=1024,
             messages=messages,

@@ -11,7 +11,6 @@ from evalforge.retrieval_evaluation import (
     load_golden_questions,
 )
 
-
 ASSET_ROOT = (
     Path(__file__).parents[1]
     / "data"
@@ -69,8 +68,7 @@ def test_manifest_resolves_every_versioned_asset_with_source_provenance() -> Non
     ]
     assert len(manifest["assets"]) == 7
     assert all(
-        (ASSET_ROOT / relative_path).is_file()
-        for relative_path in manifest["assets"]
+        (ASSET_ROOT / relative_path).is_file() for relative_path in manifest["assets"]
     )
 
 
@@ -78,10 +76,7 @@ def test_conversation_baseline_pair_encodes_a_safety_regression() -> None:
     """The migrated baseline pair must contain a real pass-to-safety-fail diff."""
     baseline = json.loads(
         (
-            ASSET_ROOT
-            / "conversation"
-            / "baselines"
-            / "prompt_injection_safe.json"
+            ASSET_ROOT / "conversation" / "baselines" / "prompt_injection_safe.json"
         ).read_text(encoding="utf-8")
     )
     regressed = json.loads(

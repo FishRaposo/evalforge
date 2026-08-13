@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 function Boom(): never {
@@ -8,6 +8,17 @@ function Boom(): never {
 }
 
 describe("ErrorBoundary", () => {
+  const suppressWindowErrors = (event: ErrorEvent) => event.preventDefault();
+
+  beforeEach(() => {
+    window.addEventListener("error", suppressWindowErrors);
+  });
+
+  afterEach(() => {
+    window.removeEventListener("error", suppressWindowErrors);
+    vi.restoreAllMocks();
+  });
+
   it("renders children when there is no error", () => {
     render(
       <ErrorBoundary>

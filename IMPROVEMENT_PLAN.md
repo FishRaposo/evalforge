@@ -1,4 +1,10 @@
-# EvalForge — Improvement Plan
+# EvalForge — Improvement Plan (historical audit)
+
+> **Historical snapshot:** this audit predates the current implementation. Several P0/P1
+> findings below were subsequently fixed and are retained as provenance, not as an
+> active backlog. See [ROADMAP.md](ROADMAP.md) for verified current state. The active
+> finalization work also vendors the approved shared-infrastructure subset, so this
+> checkout no longer installs `operator-shared-core` externally.
 
 > Comprehensive audit of bugs, inconsistencies, missing features, and growth opportunities.
 > Priority levels: **P0** (broken/blocking), **P1** (high value), **P2** (polish), **P3** (long-term growth).

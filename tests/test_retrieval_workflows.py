@@ -9,7 +9,6 @@ from typer.testing import CliRunner
 
 from evalforge.cli import app
 
-
 runner = CliRunner()
 ASSET_ROOT = (
     Path(__file__).parents[1]

@@ -1,55 +1,35 @@
-# Roadmap
+# Engineering roadmap
 
-Product roadmap: [../ROADMAP.md](../ROADMAP.md). This file tracks the engineering
-follow-ups from the migration onto `shared_core` and the comprehensive-bar pass.
+The root [ROADMAP.md](../ROADMAP.md) is the concise capability inventory. This file
+records the engineering constraints behind the remaining work.
 
-```mermaid
-timeline
-    title EvalForge engineering roadmap
-    Done : shared_core config + server : Standard spine (Makefile, ruff, CI, demo)
-         : Baseline-compare wired to history store : Custom-judge plugin loader (end-to-end) : Scheduled-eval persists to history : Frontend demo-mode + ErrorBoundary + vitest
-    Next : Judges + drift to shared_core.evaljudge (golden-gated) : LLM backends to LLMClientFactory : HF loader to a shared ingestion helper
-    Later : History store on shared_core.database (keep SQLite path) : Promote compliance engine + notifiers
-```
+## Current state
 
-## Now (done)
-- ✅ `config` extends `shared_core.config.BaseAppConfig` (EVALFORGE_ prefix preserved).
-- ✅ History API uses `shared_core` error handler + request-logging middleware.
-- ✅ Standard spine (Makefile, ruff at repo root, pyright, CI installing shared-core,
-  offline demo, optional pgvector/redis compose).
-- ✅ **Drift detector wired to a baseline-compare flow** backed by the SQLite history store
-  (`evalforge baseline set/compare <report> --db <path>`), keyed by suite name — the same
-  baseline the history API and dashboard read.
-- ✅ **Custom-judge plugin loader finished** end-to-end: `resolve_judge_override()` turns a
-  plugin file into a `(TestCaseType, CustomJudge)` override that `evalforge eval
-  --judge-plugin <file> --judge-plugin-type <type>` applies via scoped `RAGRunner`
-  overrides (no global-registry mutation).
-- ✅ **Scheduled-eval option** runs against a chosen `--backend` and persists each run to the
-  history DB (`evalforge schedule <suite> --backend <b> --db <path>`, `--no-save` to opt out).
-- ✅ **Frontend** demo-mode fallback (works with no backend), loading/empty/error states,
-  an `ErrorBoundary`, vitest component tests, and a Playwright demo-mode smoke spec.
+- ✅ `config.Settings` extends the vendored `evalforge.shared_core.config.BaseAppConfig`
+  while preserving the `EVALFORGE_` prefix.
+- ✅ The history API uses vendored error handling and request logging middleware.
+- ✅ The repository installs from its own `pyproject.toml`; CI does not fetch a sibling
+  checkout or Git URL.
+- ✅ Baseline comparison, custom judge plugins, scheduled evaluation, workspaces,
+  frontend demo mode, and the API-backed dashboard are wired end-to-end.
+- ✅ Semantic score-sensitive behavior is pinned by `tests/test_semantic_golden.py`.
 
-## Next — domain-capability convergence (golden-output-gated)
-Each is score-sensitive; do it only with before/after golden-output tests over
-`example_suites/` so EvalForge's own regression baselines don't drift:
-- Judges + drift detection → `shared_core.evaljudge` (the shared `Judge`/`DriftDetector`).
-- LLM backends → `shared_core.llm.LLMClientFactory`.
-- HF dataset loader → a shared dataset/ingestion helper.
+## Golden-output-gated follow-ups
 
-### Skipped (golden-gate failed) — `semantic_match` → `shared_core.embeddings`
-Attempted and **deliberately not adopted**. The bespoke TF-IDF fallback uses an IDF of
-`log(1 + doc_count / df)`; `shared_core.embeddings.tfidf_cosine` uses a different IDF, so
-identical inputs produce different scores (e.g. `0.7551` vs `0.8771`). Rerouting would
-silently shift every stored semantic baseline. The current scores are now pinned in
-`tests/test_semantic_golden.py`; the convergence is a follow-up that must reproduce those
-exact values (or stay skipped). Jaccard *is* identical across both implementations, but it
-is only the tertiary fallback, so swapping it alone adds risk for no benefit.
+Only pursue these changes with before/after fixtures over the committed example suites:
 
-## Later
-- Optionally back the history store with `shared_core.database` while keeping the offline
-  SQLite CLI path.
-- Promote the compliance rule engine and slack/discord notifiers if a second consumer appears.
+- judges and drift detection → a shared judge implementation;
+- LLM backends → a shared client factory;
+- HF dataset loading → a shared ingestion helper;
+- history persistence → a shared database abstraction while retaining SQLite.
 
-## Intentionally not building (now)
-- Moving the package under `apps/api/src/` (the CLI-first layout is the project's identity).
-- Rerouting `logging.py` through `shared_core.logging` (its `_JSONFormatter` is unit-tested).
+The bespoke implementations stay in place if any migration changes stored scores,
+report shapes, or offline behavior.
+
+## Explicitly preserved
+
+- The CLI-first root package layout is the project identity.
+- `evalforge/logging.py` remains separate because its `_JSONFormatter` contract is
+  unit-tested.
+- The deterministic semantic fallback remains separate because its TF-IDF score
+  calculation differs from the archived shared implementation.

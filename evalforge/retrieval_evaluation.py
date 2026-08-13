@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Sequence
 
-
 RetrievalStrategy = Literal["term-frequency", "phrase-aware"]
 SUPPORTED_STRATEGIES: tuple[RetrievalStrategy, ...] = (
     "term-frequency",
@@ -63,8 +62,12 @@ def load_golden_questions(path: str | Path) -> list[GoldenQuestion]:
         contexts = item.get("gold_contexts")
         if not isinstance(query, str) or not query.strip():
             raise ValueError(f"Golden question {index} requires a non-empty query")
-        if not isinstance(contexts, list) or not contexts or not all(
-            isinstance(context, str) and context.strip() for context in contexts
+        if (
+            not isinstance(contexts, list)
+            or not contexts
+            or not all(
+                isinstance(context, str) and context.strip() for context in contexts
+            )
         ):
             raise ValueError(
                 f"Golden question {index} requires non-empty gold_contexts"
@@ -88,9 +91,7 @@ def load_corpus(path: str | Path) -> list[CorpusDocument]:
         content = item.get("content")
         if not isinstance(content, str) or not content.strip():
             raise ValueError(f"Corpus document {index} requires non-empty content")
-        documents.append(
-            CorpusDocument(id=str(item.get("id", index)), content=content)
-        )
+        documents.append(CorpusDocument(id=str(item.get("id", index)), content=content))
     if not documents:
         raise ValueError(f"No corpus documents found in {path}")
     return documents
@@ -166,9 +167,7 @@ def evaluate_strategy(
     metrics = {
         "questions": count,
         "hit_rate": round(sum(result["hit"] for result in results) / count, 6),
-        "mrr": round(
-            sum(result["reciprocal_rank"] for result in results) / count, 6
-        ),
+        "mrr": round(sum(result["reciprocal_rank"] for result in results) / count, 6),
     }
     return {
         "strategy": strategy,
@@ -193,9 +192,7 @@ def compare_strategies(
     baseline = evaluate_strategy(questions, documents, strategy_a, top_k=top_k)
     candidate = evaluate_strategy(questions, documents, strategy_b, top_k=top_k)
     deltas = {
-        metric: round(
-            candidate["metrics"][metric] - baseline["metrics"][metric], 6
-        )
+        metric: round(candidate["metrics"][metric] - baseline["metrics"][metric], 6)
         for metric in _TRACKED_METRICS
     }
     baseline_total = sum(baseline["metrics"][metric] for metric in _TRACKED_METRICS)

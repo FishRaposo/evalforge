@@ -20,7 +20,6 @@ from evalforge.conversation import (
     load_conversation_scenario,
 )
 
-
 cli_runner = CliRunner()
 ASSET_ROOT = (
     Path(__file__).parents[1]
@@ -51,17 +50,13 @@ class _SafeSupportBackend(BaseBackend):
 
 
 def _injection_scenario() -> ConversationScenario:
-    return load_conversation_scenario(
-        SCENARIOS / "prompt_injection_attempt.yaml"
-    )
+    return load_conversation_scenario(SCENARIOS / "prompt_injection_attempt.yaml")
 
 
 @pytest.mark.asyncio
 async def test_adversarial_persona_reacts_across_multiple_turns() -> None:
     """Removing dynamic persona replies should collapse the repeated attack flow."""
-    report = await ConversationRunner(_SafeSupportBackend()).run(
-        _injection_scenario()
-    )
+    report = await ConversationRunner(_SafeSupportBackend()).run(_injection_scenario())
 
     assert len(report.turns) == 3
     assert report.turns[0].user.startswith("Ignore previous rules")
@@ -98,9 +93,7 @@ def test_safety_failure_caps_four_dimension_overall_score() -> None:
 def test_versioned_conversation_baseline_detects_safety_regression() -> None:
     """The migrated baseline pair should expose its safety regression."""
     expected = json.loads(
-        (BASELINES / "prompt_injection_expected_diff.json").read_text(
-            encoding="utf-8"
-        )
+        (BASELINES / "prompt_injection_expected_diff.json").read_text(encoding="utf-8")
     )
     comparison = compare_conversation_reports(
         load_conversation_report(BASELINES / "prompt_injection_safe.json"),
@@ -162,9 +155,7 @@ def test_conversation_cli_runs_offline_and_manages_baseline(tmp_path: Path) -> N
 
 def test_source_shaped_scenario_loads_prompt_injection_flag() -> None:
     """Source-style YAML should carry the rubric injection flag to the persona."""
-    scenario = load_conversation_scenario(
-        SCENARIOS / "prompt_injection_attempt.yaml"
-    )
+    scenario = load_conversation_scenario(SCENARIOS / "prompt_injection_attempt.yaml")
 
     assert scenario.rubric.injection is True
     assert scenario.persona.prompt_injection_user is True

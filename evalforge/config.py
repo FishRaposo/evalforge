@@ -5,16 +5,18 @@ from __future__ import annotations
 from functools import lru_cache
 
 from pydantic_settings import SettingsConfigDict
-from shared_core.config import BaseAppConfig
+
+from evalforge.shared_core.config import BaseAppConfig
 
 
 class Settings(BaseAppConfig):
     """EvalForge application settings.
 
-    Extends ``shared_core.config.BaseAppConfig`` (inheriting DATABASE_URL, REDIS_URL,
-    LOG_LEVEL, ...) while keeping EvalForge's ``EVALFORGE_`` env prefix and domain
-    knobs. ``OPENAI_API_KEY`` is overridden to a plain ``str`` (the base declares it as
-    ``Optional[SecretStr]``) to preserve EvalForge's backend call sites.
+    Extends the vendored ``evalforge.shared_core.config.BaseAppConfig`` (inheriting
+    DATABASE_URL, REDIS_URL, LOG_LEVEL, ...) while keeping EvalForge's
+    ``EVALFORGE_`` env prefix and domain knobs. ``OPENAI_API_KEY`` is overridden to a
+    plain ``str`` (the base declares it as ``Optional[SecretStr]``) to preserve
+    EvalForge's backend call sites.
     """
 
     DEFAULT_BACKEND: str = "mock"

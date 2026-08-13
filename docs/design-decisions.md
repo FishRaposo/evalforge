@@ -1,6 +1,7 @@
 # Design Decisions
 
-Records the decisions made when EvalForge was migrated onto the `shared_core` standard.
+Records the decisions made when EvalForge adopted and then self-contained the approved
+`shared_core` subset.
 Domain docs: [ARCHITECTURE.md](./ARCHITECTURE.md), [METRICS.md](./METRICS.md),
 [CI_INTEGRATION.md](./CI_INTEGRATION.md).
 
@@ -12,12 +13,16 @@ Domain docs: [ARCHITECTURE.md](./ARCHITECTURE.md), [METRICS.md](./METRICS.md),
   script, rather than moving it under `apps/api/src/`. Adopt `shared_core` for config and
   the history API; document this as a layout exception in AGENTS.md.
 
-## Decision: adopt `shared_core` for config + server only
+## Decision: vendor the config + server subset for self-containment
 
-- `config.Settings` now extends `shared_core.config.BaseAppConfig` (keeping the
+- `config.Settings` extends the vendored `evalforge.shared_core.config.BaseAppConfig` (keeping the
   `EVALFORGE_` env prefix and overriding `OPENAI_API_KEY` back to a plain `str`). The
-  history API registers `shared_core.errors.application_error_handler` and the
-  `RequestLoggingMiddleware`.
+  history API registers the vendored error handler and `RequestLoggingMiddleware`.
+- The exact `config`, `errors`, and `logging` files came from archived
+  `FishRaposo/operator-shared-core` v1.3.0 at commit
+  `dbf276a7708da65b55e1f10b35af634b300d1f07`; provenance and the original MIT notice
+  are recorded in `THIRD_PARTY_NOTICES.md`.
+- No sibling checkout, editable external package, or Git URL is part of installation.
 
 ## Decision: preserve the tested domain modules (no score drift)
 

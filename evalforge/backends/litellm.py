@@ -46,15 +46,18 @@ class LiteLLMBackend(BaseBackend):
         if self._client is None:
             import openai
 
-            self._client = openai.AsyncOpenAI(
+            client_factory = openai.AsyncOpenAI
+            self._client = client_factory(
                 api_key=self._api_key, base_url=self._base_url
             )
 
+        client = self._client
+        assert client is not None
         messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
         if context and "history" in context:
             messages = context["history"] + messages
 
-        response = await self._client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=self._model,
             messages=messages,  # type: ignore[arg-type]
         )

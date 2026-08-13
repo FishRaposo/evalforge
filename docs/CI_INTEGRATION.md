@@ -8,7 +8,7 @@ EvalForge integrates seamlessly with GitHub Actions to run evaluations on every 
 
 1. Add your OpenAI API key as a repository secret:
    - Go to **Settings → Secrets and variables → Actions**
-   - Add `OPENAI_API_KEY` with your key
+   - Add `EVALFORGE_OPENAI_API_KEY` with your key
 
 2. Create `.github/workflows/eval-ci.yml` in your repository.
 
@@ -37,12 +37,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -e .
+        run: pip install -e ".[server,llm]"
 
       - name: Run RAG evaluations
         run: evalforge eval example_suites/rag_basic.yaml --format json
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVALFORGE_OPENAI_API_KEY: ${{ secrets.EVALFORGE_OPENAI_API_KEY }}
 
       - name: Run citation evaluations
         run: evalforge eval example_suites/rag_citation.yaml --format markdown
@@ -112,7 +112,7 @@ jobs:
     steps:
       - run: evalforge eval suite.yaml --backend openai
         env:
-          OPENAI_BASE_URL: https://staging-api.example.com/v1
+          EVALFORGE_OPENAI_BASE_URL: https://staging-api.example.com/v1
 
   evaluate-production:
     runs-on: ubuntu-latest
@@ -120,7 +120,7 @@ jobs:
     steps:
       - run: evalforge eval suite.yaml --backend openai
         env:
-          OPENAI_BASE_URL: https://api.example.com/v1
+          EVALFORGE_OPENAI_BASE_URL: https://api.example.com/v1
 ```
 
 ## Best Practices

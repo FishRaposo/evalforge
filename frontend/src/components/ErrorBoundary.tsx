@@ -30,7 +30,6 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // eslint-disable-next-line no-console
     console.error("Dashboard ErrorBoundary caught:", error, info);
   }
 

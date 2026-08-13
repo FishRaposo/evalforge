@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "evalforge"
 version = "0.1.0"
-description = "A practical regression-testing harness for RAG and agentic AI systems"
+description = "Regression testing for RAG and agentic AI: retrieval and conversational evaluations."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -32,8 +32,10 @@ dependencies = [
 dev = [
     "pytest>=7.4",
     "pytest-asyncio>=0.21",
+    "pytest-cov>=4.1",
     "ruff>=0.1",
     "mypy>=1.5",
+    "pyright>=1.1.350",
 ]
 llm = [
     "openai>=1.0",
@@ -47,6 +49,7 @@ hf = [
 server = [
     "fastapi>=0.100",
     "uvicorn>=0.23",
+    "loguru>=0.7.0",
 ]
 all = [
     "evalforge[dev,llm,hf,server]",

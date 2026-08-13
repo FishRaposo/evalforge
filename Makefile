@@ -3,8 +3,7 @@ PYTHON := python
 .PHONY: install dev test lint format typecheck demo serve docker-up docker-down clean \
         help eval-basic eval-citation eval-compliance eval-all build-frontend test-e2e
 
-install: ## Install shared-core and EvalForge (dev + server + llm extras)
-	pip install -e ../shared-core
+install: ## Install EvalForge (dev + server + llm extras)
 	pip install -e ".[dev,server,llm]"
 
 dev: serve ## Alias for `serve` (start the history API)

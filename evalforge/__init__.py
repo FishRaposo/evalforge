@@ -1,3 +1,5 @@
-"""EvalForge - A practical regression-testing harness for RAG and agentic AI systems."""
+"""Regression testing for RAG and agentic AI: retrieval and conversational
+evaluations.
+"""
 
 __version__ = "0.1.0"

@@ -1,4 +1,8 @@
-# Implementation Plan
+# Implementation Plan (historical record)
+
+> This is the original phased implementation record. It is retained for provenance;
+> the current portfolio-finalization state and deferred work are tracked in
+> [ROADMAP.md](ROADMAP.md).
 
 ## Phase 1 — Core (MVP)
 

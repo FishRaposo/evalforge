@@ -3,12 +3,12 @@
 ## Prerequisites
 
 - Python 3.11+
-- Node.js 18+ (for dashboard)
+- Node.js 22.12+ (for the dashboard and its current Next/Vite toolchain)
 
 ## CLI Setup
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,server,llm]"
 ```
 
 ## Run Evaluations
@@ -17,7 +17,7 @@ pip install -e ".[dev]"
 # Mock backend (offline, no API keys)
 evalforge eval example_suites/rag_basic.yaml --backend mock
 
-# OpenAI backend (requires OPENAI_API_KEY)
+# OpenAI backend (requires EVALFORGE_OPENAI_API_KEY)
 evalforge eval example_suites/rag_basic.yaml --backend openai
 ```
 
@@ -37,7 +37,7 @@ evalforge eval example_suites/rag_basic.yaml --format html --output reports/
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 

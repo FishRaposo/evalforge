@@ -74,7 +74,7 @@ flowchart TD
 ## Score drift from infrastructure changes
 - **Cause:** swapping a judge/similarity implementation changes numeric scores. Concretely,
   the bespoke TF-IDF IDF formula (`log(1 + doc_count / df)`) differs from
-  `shared_core.embeddings.tfidf_cosine`, so rerouting would shift stored baselines.
+  the archived shared embeddings implementation, so rerouting would shift stored baselines.
 - **Detection:** `tests/test_semantic_golden.py` pins the exact 4-dp TF-IDF scores
   (`0.7551`, `0.6808`, `0.3553`); any drift fails the suite.
 - **Mitigation:** the domain judges/similarity are kept stable; any future convergence onto
