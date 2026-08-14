@@ -91,6 +91,25 @@ secret redaction rules are applied. The offline mock path records its model and
 marks its response as mock data; its latency is treated as runtime noise for
 reproducibility hashing.
 
+### Judge calibration metadata
+
+`LLMJudge(num_samples=N)` executes exactly `N` samples. Structured JSON (including
+fenced JSON) is preferred; the historical line parser remains a compatibility
+fallback. `judge_details` preserves the first sample's legacy fields and adds
+`sample_count`, `valid_sample_count`, `samples`, `criterion_aggregates`,
+`standard_deviation`, `agreement`, `uncertainty`, and `errors`. A malformed sample
+is explicit; if all samples are malformed the score is `0.0` and the case fails.
+Offline seeds are SHA-256-derived so repeated processes produce the same samples.
+
+### Agent trace assertions
+
+Agent cases may use metadata keys `expected_tools`, `expected_tool_sequence`,
+`max_tool_calls`, and `forbidden_tools`. Every turn and parsed tool call is
+retained in `TestResult.agent_trace`; the historical `judge_details["tool_calls"]`
+field remains unchanged. Assertion results report a boolean `passed` value and a
+list of named failures. Trace timing and other runtime-only values are excluded
+from evidence reproducibility hashes.
+
 ---
 
 ## must_retrieve

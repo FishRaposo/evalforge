@@ -90,3 +90,12 @@ All gates green; Python test count rose 146 → 183 with no regressions; the fro
 a vitest suite (29 tests) and a demo-mode e2e spec; the three project-specific capabilities
 are wired end-to-end; and the one score-sensitive convergence was correctly skipped and
 pinned rather than allowed to drift.
+
+## Subsequent portfolio expansion
+
+The later evidence-pack pass completed the engineering follow-ups that were deferred in
+this historical plan: judge calibration, formal agent traces, local provider/ingestion/
+repository compatibility contracts, and evidence schema v2. The archived `shared_core`
+package is still not restored; only the explicitly attributed config/errors/logging subset
+is vendored. Hosted/team workflows, hosted scheduling, Slack/Discord expansion,
+multi-model comparison, and prompt versioning remain product deferrals.

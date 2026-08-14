@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from evalforge.cli import app, build_backend
@@ -222,7 +223,12 @@ class TestPluginsCommand:
 
 
 class TestCiCommand:
-    def test_ci_passes_with_low_threshold(self, tmp_path: Path) -> None:
+    def test_ci_passes_with_low_threshold(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The CI command persists its default file baseline relative to cwd.
+        # Keep that generated artifact inside pytest's temporary directory.
+        monkeypatch.chdir(tmp_path)
         suite = tmp_path / "suite.yaml"
         suite.write_text(
             "name: CI Suite\nversion: '1.0'\ntest_cases:\n"

@@ -105,7 +105,9 @@ after recursively redacting secret-shaped keys such as API keys, tokens,
 authorization headers, passwords, cookies, and webhook URLs. Review the bundle
 before sharing it: custom backends may attach provider metadata, and redaction is
 key-based rather than a guarantee that arbitrary response text contains no
-secrets. The verifier checks SHA-256 integrity and report consistency; it does
+secrets. Calibration reasoning and agent trace content are also operator-supplied
+report data; inspect them for prompt or customer information before publication.
+The verifier checks schema-v1/v2 SHA-256 integrity and report consistency; it does
 not provide cryptographic signing or authenticity for an untrusted Git checkout.
 
 The canonical `make evidence` path uses the mock backend, no credentials, and no

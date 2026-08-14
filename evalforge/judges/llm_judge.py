@@ -7,10 +7,15 @@ Supports self-consistency scoring and ensemble judging.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
+import statistics
 from typing import Any
 
+from evalforge.core.clients import LLMClientFactory
 from evalforge.execution import SimulatedEvaluator, resolve_mode
 from evalforge.judges.base import BaseJudge, JudgeResult
+from evalforge.models.calibration import CalibrationSummary, JudgeSample
 from evalforge.models.test_case import TestCase
 
 
@@ -30,6 +35,7 @@ class LLMJudge(BaseJudge):
         temperature: float = 0.3,
         num_samples: int = 1,
         api_key: str | None = None,
+        client_factory: LLMClientFactory | None = None,
     ) -> None:
         """Initialize LLM judge.
 
@@ -40,11 +46,14 @@ class LLMJudge(BaseJudge):
             num_samples: Number of samples for self-consistency.
             api_key: API key for LLM provider.
         """
+        if num_samples < 1:
+            raise ValueError("num_samples must be >= 1")
         self.model = model
         self.criteria = criteria or self._default_criteria()
         self.temperature = temperature
         self.num_samples = num_samples
         self.api_key = api_key
+        self._client_factory = client_factory or LLMClientFactory()
         self._client: Any = None
 
     def judge(self, test_case: TestCase, response: str) -> JudgeResult:
@@ -63,26 +72,102 @@ class LLMJudge(BaseJudge):
         context = test_case.expected
 
         mode = resolve_mode()
-        if mode == "sim":
-            sim = SimulatedEvaluator(seed=hash(test_case.id) % 2**31)
-            result = sim.evaluate(f"{query}\n{response}")
-            score = result.get("score", 0.0)
-        else:
-            result = self._evaluate_sync(query, response, context)
-            # Real mode parses scores on a 1-10 scale; normalize to 0-1.
-            raw = result.get("score", 5.0)
-            score = max(0.0, min(raw / 10.0, 1.0))
-            criteria_scores = result.get("criteria_scores")
-            if isinstance(criteria_scores, dict):
-                result["criteria_scores"] = {
-                    k: max(0.0, min(v / 10.0, 1.0)) for k, v in criteria_scores.items()
-                }
+        samples: list[JudgeSample] = []
+        for sample_index in range(self.num_samples):
+            if mode == "sim":
+                seed = self._stable_seed(test_case.id, sample_index)
+                sim = SimulatedEvaluator(seed=seed)
+                raw_result = sim.evaluate(f"{query}\n{response}\n{sample_index}")
+            else:
+                raw_result = self._evaluate_sync(query, response, context)
+            samples.append(self._normalize_sample(raw_result))
 
-        passed = score >= 0.7
+        summary = self._summarize_samples(samples)
+        score = summary.mean_score
+        passed = score >= 0.7 and summary.valid_sample_count > 0
+        # Preserve the first sample's legacy fields, then add calibration data.
+        result = samples[0].model_dump(mode="json") if samples else {}
+        result["score"] = score
+        result["criteria_scores"] = result.pop("criterion_scores", {})
+        result.update(summary.as_details())
         return JudgeResult(
             passed=passed,
             score=score,
             details=result,
+        )
+
+    @staticmethod
+    def _stable_seed(test_case_id: str, sample_index: int) -> int:
+        """Derive a process-independent seed for an offline sample."""
+
+        digest = hashlib.sha256(f"{test_case_id}:{sample_index}".encode()).digest()
+        return int.from_bytes(digest[:8], "big") % (2**31)
+
+    @staticmethod
+    def _normalize_value(value: Any) -> float:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        if numeric > 1.0:
+            numeric /= 10.0
+        return max(0.0, min(numeric, 1.0))
+
+    def _normalize_sample(self, raw: dict[str, Any]) -> JudgeSample:
+        error = raw.get("error")
+        criteria = raw.get("criteria_scores", raw.get("criterion_scores", {}))
+        if not isinstance(criteria, dict):
+            criteria = {}
+        return JudgeSample(
+            score=self._normalize_value(raw.get("score", 0.0)),
+            criterion_scores={
+                str(key): self._normalize_value(value)
+                for key, value in criteria.items()
+                if isinstance(value, (int, float, str))
+            },
+            reasoning=str(raw.get("reasoning", "")),
+            method=str(raw.get("method", "unknown")),
+            error=str(error) if error else None,
+            provider=str(raw["provider"]) if raw.get("provider") else None,
+            model=str(raw["model"]) if raw.get("model") else None,
+            usage={
+                str(key): int(value)
+                for key, value in (raw.get("usage") or {}).items()
+                if isinstance(value, (int, float))
+            },
+            cache_hit=raw.get("cache_hit")
+            if isinstance(raw.get("cache_hit"), bool)
+            else None,
+            fallback_path=str(raw["fallback_path"])
+            if raw.get("fallback_path")
+            else None,
+        )
+
+    def _summarize_samples(self, samples: list[JudgeSample]) -> CalibrationSummary:
+        valid = [sample for sample in samples if sample.valid]
+        scores = [sample.score for sample in valid]
+        mean_score = statistics.fmean(scores) if scores else 0.0
+        stddev = statistics.pstdev(scores) if len(scores) > 1 else 0.0
+        spread = max(scores) - min(scores) if len(scores) > 1 else 0.0
+        agreement = "high" if spread < 0.2 else "medium" if spread < 0.4 else "low"
+        criteria: dict[str, list[float]] = {}
+        for sample in valid:
+            for key, value in sample.criterion_scores.items():
+                criteria.setdefault(key, []).append(value)
+        criterion_aggregates = {
+            key: round(statistics.fmean(values), 6)
+            for key, values in sorted(criteria.items())
+        }
+        return CalibrationSummary(
+            sample_count=len(samples),
+            valid_sample_count=len(valid),
+            mean_score=round(mean_score, 6),
+            standard_deviation=round(stddev, 6),
+            agreement=agreement,
+            uncertainty=round(stddev, 6),
+            samples=samples,
+            criterion_aggregates=criterion_aggregates,
+            errors=[sample.error for sample in samples if sample.error],
         )
 
     def _default_criteria(self) -> str:
@@ -149,16 +234,24 @@ Provide a score from 1-10 and brief justification."""
         prompt = self._build_prompt(query, response, context)
 
         try:
-            if "claude" in self.model.lower():
-                result = asyncio.run(self._evaluate_with_anthropic(prompt))
-            else:
-                result = asyncio.run(self._evaluate_with_openai(prompt))
+            result = asyncio.run(self._evaluate_with_factory(prompt))
 
             return {
                 "score": result["score"],
                 "reasoning": result["reasoning"],
                 "criteria_scores": result.get("criteria_scores", {}),
                 "method": "llm_single",
+                **{
+                    key: result[key]
+                    for key in (
+                        "provider",
+                        "model",
+                        "usage",
+                        "fallback_path",
+                        "cache_hit",
+                    )
+                    if key in result
+                },
             }
 
         except Exception as e:
@@ -221,13 +314,56 @@ Provide a score from 1-10 and brief justification."""
         Returns:
             Parsed result with score and reasoning.
         """
-        lines = content.strip().split("\n")
+        stripped = content.strip()
+        if stripped.startswith("```"):
+            lines = stripped.splitlines()
+            if lines and lines[0].lstrip().startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            stripped = "\n".join(lines).strip()
+        try:
+            structured = json.loads(stripped)
+        except (json.JSONDecodeError, TypeError):
+            structured = None
+        if isinstance(structured, dict) and "score" in structured:
+            raw_score = structured.get("score")
+            try:
+                if isinstance(raw_score, bool) or not isinstance(
+                    raw_score, (int, float, str)
+                ):
+                    raise ValueError
+                float(raw_score)
+            except (TypeError, ValueError):
+                return {
+                    "score": 0.0,
+                    "reasoning": str(structured.get("reasoning", "")),
+                    "criteria_scores": {},
+                    "method": structured.get("method", "json"),
+                    "error": "Malformed evaluation output",
+                }
+            criteria = structured.get(
+                "criteria_scores", structured.get("criterion_scores", {})
+            )
+            return {
+                "score": structured.get("score", 0.0),
+                "reasoning": structured.get(
+                    "reasoning", structured.get("justification", "")
+                ),
+                "criteria_scores": criteria if isinstance(criteria, dict) else {},
+                "method": structured.get("method", "json"),
+                **({"error": structured["error"]} if structured.get("error") else {}),
+            }
+
+        lines = stripped.split("\n")
 
         result: dict[str, Any] = {
             "score": 5.0,
             "reasoning": "",
             "criteria_scores": {},
+            "method": "line",
         }
+        parsed_field = False
 
         # Extract overall score
         for line in lines:
@@ -235,12 +371,14 @@ Provide a score from 1-10 and brief justification."""
                 try:
                     score_str = line.split(":")[1].strip()
                     result["score"] = float(score_str.split()[0])
+                    parsed_field = True
                 except (ValueError, IndexError):
                     pass
 
             # Extract justification
             elif line.lower().startswith("justification:"):
                 result["reasoning"] = line.split(":", 1)[1].strip()
+                parsed_field = True
 
             # Extract criteria scores
             elif "accuracy:" in line.lower():
@@ -248,6 +386,7 @@ Provide a score from 1-10 and brief justification."""
                     result["criteria_scores"]["accuracy"] = float(
                         line.split(":")[1].strip()
                     )
+                    parsed_field = True
                 except (ValueError, IndexError):
                     pass
             elif "completeness:" in line.lower():
@@ -255,6 +394,7 @@ Provide a score from 1-10 and brief justification."""
                     result["criteria_scores"]["completeness"] = float(
                         line.split(":")[1].strip()
                     )
+                    parsed_field = True
                 except (ValueError, IndexError):
                     pass
             elif "clarity:" in line.lower():
@@ -262,6 +402,7 @@ Provide a score from 1-10 and brief justification."""
                     result["criteria_scores"]["clarity"] = float(
                         line.split(":")[1].strip()
                     )
+                    parsed_field = True
                 except (ValueError, IndexError):
                     pass
             elif "relevance:" in line.lower():
@@ -269,10 +410,41 @@ Provide a score from 1-10 and brief justification."""
                     result["criteria_scores"]["relevance"] = float(
                         line.split(":")[1].strip()
                     )
+                    parsed_field = True
                 except (ValueError, IndexError):
                     pass
 
+        if not parsed_field:
+            return {
+                "score": 0.0,
+                "reasoning": "",
+                "criteria_scores": {},
+                "method": "line",
+                "error": "Malformed evaluation output",
+            }
         return result
+
+    async def _evaluate_with_factory(self, prompt: str) -> dict[str, Any]:
+        """Complete through the local provider-neutral client factory."""
+
+        provider = "anthropic" if "claude" in self.model.lower() else "openai"
+        client = self._client_factory.create(
+            provider=provider,
+            model=self.model,
+            api_key=self.api_key,
+        )
+        completion = await client.complete(
+            prompt,
+            temperature=self.temperature,
+            max_tokens=500,
+        )
+        parsed = self._parse_evaluation(completion.content)
+        parsed["provider"] = completion.provider
+        parsed["model"] = completion.model
+        parsed["usage"] = completion.usage
+        parsed["fallback_path"] = completion.fallback_path
+        parsed["cache_hit"] = completion.cache_hit
+        return parsed
 
 
 class EnsembleJudge(BaseJudge):

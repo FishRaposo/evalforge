@@ -6,7 +6,7 @@ import os
 from typing import Any
 
 from evalforge.backends.base import BackendResponse, BaseBackend
-from evalforge.execution import SimulatedEvaluator
+from evalforge.core.clients import LLMClientFactory
 
 
 class LiteLLMBackend(BaseBackend):
@@ -27,55 +27,38 @@ class LiteLLMBackend(BaseBackend):
         self._model = model
         self._base_url = base_url or os.getenv("LITELLM_BASE_URL")
         self._client: Any | None = None
+        self._client_factory = LLMClientFactory()
 
     async def query(
         self, prompt: str, context: dict[str, Any] | None = None
     ) -> BackendResponse:
-        if not self._api_key:
-            sim = SimulatedEvaluator(seed=hash(prompt) % 2**31)
-            result = sim.evaluate(prompt)
-            return BackendResponse(
-                content=result["reasoning"],
-                metadata={
-                    "method": "simulated",
-                    "model": self._model,
-                    "tokens_used": 0,
-                },
-            )
-
         if self._client is None:
-            import openai
-
-            client_factory = openai.AsyncOpenAI
-            self._client = client_factory(
-                api_key=self._api_key, base_url=self._base_url
+            self._client = self._client_factory.create(
+                provider="litellm",
+                model=self._model,
+                api_key=self._api_key,
+                base_url=self._base_url,
             )
 
         client = self._client
         assert client is not None
-        messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
-        if context and "history" in context:
-            messages = context["history"] + messages
-
-        response = await client.chat.completions.create(
-            model=self._model,
-            messages=messages,  # type: ignore[arg-type]
+        completion = await client.complete(
+            prompt, context=context, temperature=0.0, max_tokens=1024
         )
-        text = response.choices[0].message.content or ""
-        usage = response.usage
-        tokens_used = 0
-        if usage:
-            tokens_used = usage.prompt_tokens + usage.completion_tokens
+        metadata = {
+            **completion.metadata,
+            "provider": completion.provider,
+            "model": completion.model or self._model,
+            "usage": completion.usage,
+            "tokens_used": completion.usage.get("total_tokens", 0),
+            "cache_hit": completion.cache_hit,
+            "fallback_path": completion.fallback_path,
+        }
+        if completion.fallback_path:
+            metadata.setdefault("method", "simulated")
         return BackendResponse(
-            content=text,
-            metadata={
-                "model": self._model,
-                "usage": {
-                    "input_tokens": usage.prompt_tokens if usage else 0,
-                    "output_tokens": usage.completion_tokens if usage else 0,
-                },
-                "tokens_used": tokens_used,
-            },
+            content=completion.content,
+            metadata=metadata,
         )
 
     async def health_check(self) -> bool:

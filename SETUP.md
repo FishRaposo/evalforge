@@ -43,8 +43,14 @@ evalforge eval example_suites/rag_basic.yaml --backend mock --no-save \
 evalforge evidence verify evidence/run
 ```
 
-See [docs/EVIDENCE.md](docs/EVIDENCE.md) for the bundle schema, redaction rules,
-and reproducibility workflow.
+See [docs/EVIDENCE.md](docs/EVIDENCE.md) for the schema-v2 bundle (with v1
+verification compatibility), redaction rules, calibration/traces, and reproducibility
+workflow.
+
+Agent suites can declare `expected_tools`, `expected_tool_sequence`,
+`max_tool_calls`, and `forbidden_tools`; inspect `agent_trace` in the report. LLM judge
+cases can set `num_samples` and review `agreement` and `uncertainty` before accepting
+a score.
 ```
 
 ## Dashboard Setup

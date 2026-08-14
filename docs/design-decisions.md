@@ -67,3 +67,12 @@ Domain docs: [ARCHITECTURE.md](./ARCHITECTURE.md), [METRICS.md](./METRICS.md),
   cannot leak across tests or suites.
 - **Scheduled eval:** extended the existing `schedule` command with `--backend`/`--save`/
   `--db` and reused the shared `build_backend()` + `HistoryStore.save_run` paths.
+
+## Superseded convergence wording
+
+The earlier preserve-the-domain-modules section describes the pre-expansion state.
+Judge/drift, provider-client, ingestion, and database convergence is now delivered
+through EvalForge-owned contracts in `evalforge.core`, with golden parity tests. The
+semantic TF-IDF migration remains intentionally skipped because its score formula
+differs. See [the local compatibility decision](decisions/2026-08-13-local-compatibility-layer.md)
+and the live [roadmap](roadmap.md) for current boundaries.

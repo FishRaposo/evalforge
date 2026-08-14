@@ -1,7 +1,7 @@
 # EvalForge Roadmap
 
-EvalForge is a usable, offline-first regression harness. The roadmap below records
-current capability and deliberately bounded follow-ups; it is not a promise to add
+EvalForge is a usable, offline-first regression harness. This roadmap records current
+capability and deliberately bounded product directions; it is not a promise to add
 enterprise workflow features during portfolio finalization.
 
 ## Delivered
@@ -9,6 +9,9 @@ enterprise workflow features during portfolio finalization.
 - [x] Python/Typer CLI with YAML suites and mock-backed offline runs
 - [x] Exact, semantic, citation, refusal, retrieval, forbidden, structured-output,
   and LLM judges
+- [x] LLM judge calibration with structured parsing, exact `num_samples`, stable seeds,
+  criterion aggregates, agreement, uncertainty, and malformed-sample errors
+- [x] Typed agent traces with tool sequence, forbidden-tool, and max-call assertions
 - [x] Markdown, JSON, HTML, JUnit, SARIF, and terminal reports
 - [x] Drift detection plus file- and SQLite-backed baseline comparison
 - [x] Retrieval strategy A/B gates with hit-rate and MRR regression checks
@@ -19,25 +22,21 @@ enterprise workflow features during portfolio finalization.
   production build, and Playwright smoke coverage
 - [x] Self-contained packaging with the approved shared-infrastructure subset vendored
   under `evalforge/shared_core/`
-- [x] Offline evidence bundles with canonical reports, redacted manifests, SHA-256
-  verification, reproducibility hashes, and deterministic drift details
+- [x] EvalForge-owned judge/drift, provider-client, ingestion, and repository contracts
+  with golden-output parity tests
+- [x] Evidence schema v2 with v1 verification compatibility, optional calibration and
+  trace payloads, redaction, SHA-256 checksums, reproducibility hashes, and deterministic
+  drift details
 
-## Intentionally deferred
+## Preserved score-sensitive boundary
 
-These are score- or compatibility-sensitive and require golden-output evidence before
-any implementation:
-
-- [ ] Move judges and drift detection to a shared judge implementation
-- [ ] Route LLM backends through a shared client factory
-- [ ] Replace the HF loader with a shared ingestion helper
-- [ ] Consider a shared database abstraction while preserving the SQLite path
-
-The bespoke domain modules remain the canonical implementation until those gates prove
-that stored scores and report contracts do not change.
+The bespoke semantic fallback remains canonical because its TF-IDF calculation differs
+from the archived shared implementation. A future replacement must prove golden parity
+for stored scores, report shapes, and offline behavior before it can land.
 
 ## Not planned for this finalization pass
 
-Team workspaces, hosted scheduling, Slack/Discord expansion, and multi-model/prompt
-versioning are product directions, not completion blockers for this portfolio piece.
-Judge calibration and formal agent tracing remain the next evidence-driven
-engineering priorities before any shared judge/client/database convergence.
+Team workspaces, hosted scheduling, Slack/Discord expansion, multi-model comparison,
+and prompt versioning remain deferred product directions. Real provider credentials and
+network-backed evaluations remain optional manual checks; the canonical portfolio and
+CI path is mock/offline.

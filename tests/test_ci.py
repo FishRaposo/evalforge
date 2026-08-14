@@ -118,6 +118,22 @@ class TestRegressionDetector:
 class TestCIPipeline:
     """Tests for CIPipeline with mocked backends and reporter."""
 
+    @pytest.fixture(autouse=True)
+    def preserve_repository_baseline(self):
+        """Keep CI pipeline tests from mutating the tracked demo baseline."""
+        baseline_path = ".evalforge/baseline.json"
+        original = None
+        if os.path.exists(baseline_path):
+            with open(baseline_path, "rb") as f:
+                original = f.read()
+        yield
+        if original is None:
+            if os.path.exists(baseline_path):
+                os.remove(baseline_path)
+        else:
+            with open(baseline_path, "wb") as f:
+                f.write(original)
+
     @pytest.fixture
     def sample_suite_path(self, tmp_path: pytestFixture) -> str:
         import yaml
@@ -208,7 +224,12 @@ class TestCIPipeline:
         monkeypatch.setenv("GITHUB_SHA", "abc123")
         # Create baseline with perfect score to trigger regression
         os.makedirs(".evalforge", exist_ok=True)
-        with open(".evalforge/baseline.json", "w") as f:
+        baseline_path = ".evalforge/baseline.json"
+        original_baseline = None
+        if os.path.exists(baseline_path):
+            with open(baseline_path, "rb") as f:
+                original_baseline = f.read()
+        with open(baseline_path, "w") as f:
             json.dump({"summary": {"avg_score": 1.0}}, f)
 
         try:
@@ -229,8 +250,12 @@ class TestCIPipeline:
             # Even if regression detected, exit code depends on threshold
             assert "regression_check" in result
         finally:
-            if os.path.exists(".evalforge/baseline.json"):
-                os.remove(".evalforge/baseline.json")
+            if original_baseline is None:
+                if os.path.exists(baseline_path):
+                    os.remove(baseline_path)
+            else:
+                with open(baseline_path, "wb") as f:
+                    f.write(original_baseline)
 
 
 pytestFixture = pytest.fixture

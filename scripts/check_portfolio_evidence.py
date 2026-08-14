@@ -30,6 +30,8 @@ def _clear_bundle_files(output_dir: Path) -> None:
         "report.json",
         "report.md",
         "drift.json",
+        "calibration.json",
+        "trace.json",
         "checksums.sha256",
     ):
         path = output_dir / name

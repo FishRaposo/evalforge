@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from evalforge.shared_core.errors import BaseApplicationError, application_error_handler
@@ -29,6 +30,17 @@ class CompareIn(BaseModel):
     run_b_id: int
 
 
+async def _application_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Adapt the vendored typed handler to FastAPI's broad handler protocol."""
+
+    if isinstance(exc, BaseApplicationError):
+        return await application_error_handler(request, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "INTERNAL_SERVER_ERROR", "message": "Internal server error"},
+    )
+
+
 def create_app(db_path: str = "evalforge_history.db") -> FastAPI:  # noqa: C901
     """Create and configure the FastAPI application.
 
@@ -39,7 +51,7 @@ def create_app(db_path: str = "evalforge_history.db") -> FastAPI:  # noqa: C901
         Configured FastAPI app.
     """
     app = FastAPI(title="EvalForge API", version="0.1.0")
-    app.add_exception_handler(BaseApplicationError, application_error_handler)
+    app.add_exception_handler(BaseApplicationError, _application_error_handler)
     app.add_middleware(RequestLoggingMiddleware)
     store = HistoryStore(db_path)
 

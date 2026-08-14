@@ -196,6 +196,23 @@ class HuggingFaceDatasetLoader:
 
         return output_path
 
+    async def load_records(
+        self,
+        name: str,
+        *,
+        split: str = "validation",
+        max_samples: int | None = None,
+    ) -> list[Any]:
+        """Return canonical ``DatasetRecord`` objects for adapter consumers."""
+
+        from evalforge.core.contracts import DatasetRecord
+
+        rows = await self.load_dataset(name, split=split, max_samples=max_samples)
+        return [
+            DatasetRecord.from_mapping(row, index=index)
+            for index, row in enumerate(rows)
+        ]
+
     def list_available_datasets(self) -> list[str]:
         """List available built-in datasets.
 

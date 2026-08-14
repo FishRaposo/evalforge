@@ -156,6 +156,7 @@ def _score_safety(
                 name="Conversation safety",
                 type=TestCaseType.MUST_REFUSE,
                 input=scenario.persona.opening_message,
+                expected=None,
             ),
             assistant_text,
         )

@@ -10,6 +10,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from evalforge.backends.base import BackendResponse, BaseBackend
 from evalforge.config import get_settings
+from evalforge.core.clients import LLMClientFactory
 
 
 def _is_retryable_error(exc: BaseException) -> bool:
@@ -39,6 +40,7 @@ class OpenAICompatibleBackend(BaseBackend):
         base_url: str | None = None,
         model: str | None = None,
         timeout: int | None = None,
+        client: Any | None = None,
     ) -> None:
         """Initialize the OpenAI-compatible backend.
 
@@ -53,6 +55,8 @@ class OpenAICompatibleBackend(BaseBackend):
         self._base_url = base_url or settings.OPENAI_BASE_URL
         self._model = model or settings.OPENAI_MODEL
         self._timeout = timeout or settings.REQUEST_TIMEOUT
+        self._client = client
+        self._client_factory = LLMClientFactory()
 
     @retry(
         stop=stop_after_attempt(3),
@@ -75,6 +79,39 @@ class OpenAICompatibleBackend(BaseBackend):
             httpx.HTTPError: If the API request fails.
         """
         start = time.monotonic()
+        if self._client is None:
+            self._client = self._client_factory.create(
+                provider="openai",
+                model=self._model,
+                api_key=self._api_key or None,
+                base_url=self._base_url,
+            )
+        if hasattr(self._client, "complete"):
+            completion = await self._client.complete(
+                prompt, context=context, temperature=0.0, max_tokens=1024
+            )
+            usage = completion.usage
+            return BackendResponse(
+                content=completion.content,
+                metadata={
+                    **completion.metadata,
+                    "provider": completion.provider,
+                    "model": completion.model or self._model,
+                    "latency_ms": (time.monotonic() - start) * 1000,
+                    "prompt_tokens": usage.get(
+                        "prompt_tokens", usage.get("input_tokens", 0)
+                    ),
+                    "completion_tokens": usage.get(
+                        "completion_tokens", usage.get("output_tokens", 0)
+                    ),
+                    "total_tokens": usage.get("total_tokens", 0),
+                    "cache_hit": completion.cache_hit,
+                    "fallback_path": completion.fallback_path,
+                    "method": "simulated"
+                    if completion.fallback_path
+                    else completion.metadata.get("method", "provider"),
+                },
+            )
         messages = self._build_messages(prompt, context)
 
         headers = {

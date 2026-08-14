@@ -2,11 +2,12 @@
 
 [![CI](https://github.com/FishRaposo/evalforge/actions/workflows/ci.yml/badge.svg)](https://github.com/FishRaposo/evalforge/actions/workflows/ci.yml) [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]() [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Regression testing for RAG and agentic AI: retrieval and conversational evaluations.**
+**Offline-first regression testing for RAG and agentic AI, with inspectable evidence.**
 
-Vendored from the archived `FishRaposo/operator-shared-core` (v1.3.0) on 2026-08-13.
-The config/server subset and its license details are documented in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+EvalForge is self-contained. A narrowly scoped config/server subset from the archived
+`FishRaposo/operator-shared-core` v1.3.0 is vendored under `evalforge/shared_core/`; the
+local compatibility layer owns evaluation, provider, ingestion, and repository contracts.
+Attribution and the pinned source commit are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Define test suites in YAML, evaluate retrieval correctness, citation quality, and refusal behavior — then catch quality drift before it reaches production.
 
@@ -44,6 +45,12 @@ EvalForge gives you:
   same JSONL golden questions and fail CI on hit-rate or MRR regression
 - **Conversational regression tests**: Drive adaptive adversarial personas through
   multiple turns and score safety, policy adherence, goal completion, and tone
+- **Judge calibration**: Run an exact number of deterministic self-consistency samples,
+  aggregate agreement/uncertainty, and retain malformed-sample errors
+- **Agent traces**: Inspect ordered turns, tool calls, assertion failures, and termination
+  reasons without changing the existing report fields
+- **Portfolio evidence**: Verify schema-v2 bundles, checksums, redacted configuration,
+  reproducibility hashes, provider metadata, calibration, and traces offline
 
 ## Why naive AI systems fail here
 
@@ -97,8 +104,8 @@ make evidence
 | Command | What it does |
 |---------|--------------|
 | `evalforge eval <suite>` | Run a suite against a backend; writes a report and (by default) saves to history |
-| `evalforge eval <suite> --evidence-dir <dir>` | Write a reproducible manifest, canonical report, Markdown report, and checksums (plus optional drift data) |
-| `evalforge evidence verify <dir>` | Verify evidence manifest, payload checksums, report schema, and reproducibility hash |
+| `evalforge eval <suite> --evidence-dir <dir>` | Write a schema-v2 manifest, canonical report, Markdown report, checksums, and optional drift/calibration/trace payloads |
+| `evalforge evidence verify <dir>` | Verify schema-v1/v2 manifests, payload checksums, report schema, optional payloads, and reproducibility hash |
 | `evalforge eval <suite> --judge-plugin <file> --judge-plugin-type <type>` | Override a judge for one test-case type with a custom plugin |
 | `evalforge drift <baseline.json> <current.json>` | Compare two report files; exits non-zero on regression |
 | `evalforge baseline set <report> [--db <path>]` | Save a report as the baseline (file by default, history store with `--db`) |
@@ -147,9 +154,9 @@ evalforge evidence verify ./evidence/run
 
 The bundle records the suite, report, environment, and decision hashes while
 redacting secret-shaped configuration keys. Its reproducibility hash excludes
-timestamps, durations, latency, and generated paths, so two identical offline
-runs can be compared directly. See [the evidence format guide](docs/EVIDENCE.md)
-for the manifest schema, drift fields, replay workflow, and redaction rules.
+timestamps, durations, latency, runtime trace fields, and generated paths, so two
+identical offline runs can be compared directly. See [the evidence format guide](docs/EVIDENCE.md)
+for the schema-v2 manifest, calibration and trace fields, replay workflow, and redaction rules.
 
 ### Retrieval strategy A/B gate
 
@@ -329,12 +336,20 @@ Delivered:
 - ✅ **Scheduled evals**: `evalforge schedule` persists runs to history
 - ✅ **Dashboard**: Next.js report visualization with offline demo-mode
 
-Planned:
+Delivered engineering foundations:
 
-- **Multi-model comparison**: Evaluate across providers simultaneously
-- **Prompt versioning**: Track which prompts produced which results
-- **Additional shared-infrastructure convergence only when golden outputs remain
-  identical** (see [docs/roadmap.md](docs/roadmap.md))
+- ✅ **Calibration**: Structured/fenced judge parsing, exact `num_samples`, stable seeds,
+  criterion aggregates, agreement, uncertainty, and explicit malformed samples
+- ✅ **Agent traces**: Typed traces, tool-sequence assertions, forbidden/max-call gates,
+  and evidence serialization
+- ✅ **Local compatibility contracts**: Judge/drift engines, provider clients/factory,
+  dataset records, and SQLite report repository with golden parity tests
+- ✅ **Evidence schema v2**: v1-compatible verification plus calibration, trace, provider,
+  and compatibility metadata
+
+Intentionally not planned: hosted/team workflows, Slack/Discord expansion, hosted
+scheduling, multi-model comparison, and prompt versioning. Real provider credentials
+remain opt-in; the portfolio and CI path stays mock/offline.
 
 ## What this project demonstrates
 

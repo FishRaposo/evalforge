@@ -31,8 +31,8 @@ if TYPE_CHECKING:
 app = typer.Typer(
     name="evalforge",
     help=(
-        "Regression testing for RAG and agentic AI: retrieval and conversational "
-        "evaluations."
+        "Offline-first regression testing for RAG and agentic AI, with inspectable "
+        "evidence."
     ),
     add_completion=False,
 )
@@ -250,6 +250,7 @@ def eval(  # noqa: C901
             "backend": backend,
             "mode": resolve_mode(),
             "suite_path": str(suite_path),
+            "compatibility_layer": "evalforge.core",
         },
     )
 
@@ -299,6 +300,34 @@ def eval(  # noqa: C901
             ),
             None,
         )
+        calibration_payload = {
+            "schema_version": 1,
+            "results": [
+                {
+                    "test_case_id": result.test_case_id,
+                    "sample_count": result.judge_details.get("sample_count"),
+                    "agreement": result.judge_details.get("agreement"),
+                    "uncertainty": result.judge_details.get("uncertainty"),
+                }
+                for result in results
+                if result.judge_details.get("sample_count") is not None
+            ],
+        }
+        if not calibration_payload["results"]:
+            calibration_payload = None
+        trace_payload = {
+            "schema_version": 1,
+            "results": [
+                {
+                    "test_case_id": result.test_case_id,
+                    "trace": result.agent_trace.model_dump(mode="json"),
+                }
+                for result in results
+                if result.agent_trace is not None
+            ],
+        }
+        if not trace_payload["results"]:
+            trace_payload = None
         manifest = build_evidence_bundle(
             output_dir=evidence_dir,
             report=report,
@@ -312,6 +341,14 @@ def eval(  # noqa: C901
             git_sha=resolve_git_sha(evidence_suite_path.parent),
             started_at=started_at,
             completed_at=datetime.now(timezone.utc),
+            calibration=calibration_payload,
+            trace=trace_payload,
+            compatibility_layer="evalforge.core",
+            provider_metadata={
+                "backend": backend,
+                "model": model,
+                "results": [result.backend_metadata for result in results],
+            },
         )
         console.print(
             f"[green]Evidence bundle saved:[/green] {evidence_dir} "

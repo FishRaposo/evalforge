@@ -11,9 +11,10 @@ jobs are optional and should use protected secrets only.
 
 ### Quick Setup
 
-1. Add your OpenAI API key as a repository secret:
+1. Keep pull-request CI credential-free. Add provider secrets only for an explicitly
+   protected, optional nightly job:
    - Go to **Settings → Secrets and variables → Actions**
-   - Add `EVALFORGE_OPENAI_API_KEY` with your key
+   - Add `EVALFORGE_OPENAI_API_KEY` only when a real-provider check is required
 
 2. Create `.github/workflows/eval-ci.yml` in your repository.
 
@@ -95,8 +96,10 @@ Reports are uploaded as CI artifacts for review:
 - **Markdown reports**: Easy to read in the GitHub UI
 - **HTML reports**: Can be deployed to a static site for team review
 - **Evidence bundles**: Include the manifest, canonical reports, optional drift
-  details, and SHA-256 checksums; `evalforge evidence verify <dir>` is the local
-  replay/integrity gate.
+  details, calibration, traces, provider metadata, and SHA-256 checksums;
+  `evalforge evidence verify <dir>` is the local replay/integrity gate. The checked-in
+  workflow also runs staged calibration/trace/compatibility fixtures and a clean wheel
+  import scan with no external `shared_core` package.
 
 ### Downloading Artifacts
 

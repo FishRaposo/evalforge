@@ -20,7 +20,7 @@ evalforge/
 │   ├── retrieval_evaluation.py   #   offline golden retrieval A/B + CI metric gate
 │   ├── conversation.py           #   multi-turn personas, rubric, baseline diff
 │   ├── judges/  backends/  runners/  reporters/  compliance/  loader/
-│   ├── datasets/  models/  drift.py  evidence.py  execution.py  plugins.py
+│   ├── datasets/  models/  core/  drift.py  evidence.py  execution.py  plugins.py
 │   ├── scheduler/  notifications/  workspaces/  ci/
 │   ├── storage/history.py        #   SQLite history store (offline-first)
 │   └── server/app.py             #   FastAPI history API (vendored middleware + handler)
@@ -62,7 +62,7 @@ unit tests that lock its `_JSONFormatter`).
 
 ```bash
 make install      # pip install -e '.[dev,server,llm]'
-make test         # pytest  -> 214 passing at the finalization baseline
+make test         # pytest  -> 248 passing at the expansion gate
 make lint         # ruff check evalforge tests scripts
 make format       # ruff format ...
 make typecheck    # pyright evalforge
@@ -93,18 +93,26 @@ offline synthetic fallback, so the suite runs without it.
 the `EVALFORGE_` prefix preserved; the history API uses the vendored middleware and
 error handler. The mock backend can emit a checksum-verified evidence bundle with a
 stable reproducibility hash and deterministic drift details. The isolated
-finalization baseline is **214 passing tests**, with Ruff and Pyright clean. The
+finalization baseline is now extended with deterministic judge calibration, formal
+agent traces, EvalForge-owned compatibility contracts, and schema-v2 evidence; the
+full suite is the source of truth for the current test count. The
 Next.js dashboard is covered by unit, build, and Playwright smoke gates.
 
-## Follow-ups (not done now)
+## Delivered engineering deferrals
 
-- Converge the judges + drift onto `shared_core.evaljudge` and `semantic_match` onto
-  `shared_core.embeddings` — gated on **golden-output tests** so stored scores don't drift.
-- Route LLM backends through `shared_core.llm.LLMClientFactory`.
-- Optionally back the history store with `shared_core.database` (keep the SQLite CLI path).
+- `evalforge.core` provides local judge/drift engines, provider clients/factory, dataset
+  records, and a SQLite report repository with golden parity tests.
+- `LLMJudge` calibration and typed `AgentTrace` models are additive to existing reports.
+- Evidence schema v2 adds optional calibration, trace, provider, and compatibility metadata
+  while schema-v1 bundles remain verifiable.
+
+The bespoke semantic TF-IDF implementation remains intentionally separate because its
+score formula differs from the archived shared implementation. Hosted/team workflows,
+hosted scheduling, Slack/Discord expansion, multi-model comparison, and prompt versioning
+remain product deferrals.
 
 ## When to Update This AGENTS.md
 
 - The CLI surface, judges, or backends change
-- The shared-core adoption surface changes (config/server)
+- The vendored runtime surface changes (config/server)
 - Makefile targets, CI steps, or the docker-compose infra change

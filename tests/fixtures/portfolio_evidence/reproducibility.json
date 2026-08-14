@@ -2,5 +2,5 @@
   "suite": "example_suites/rag_basic.yaml",
   "backend": "mock",
   "mode": "sim",
-  "reproducibility_hash": "5018c93f256d3669d5a3f3d27577f78f84395a76fb5475a298864651bc3fca83"
+  "reproducibility_hash": "b707e5b1e130bba88d7f898178824756403954c57f5679131a3993607b8dd039"
 }

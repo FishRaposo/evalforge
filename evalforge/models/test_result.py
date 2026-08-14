@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from evalforge.models.trace import AgentTrace
+
 
 class TestResult(BaseModel):
     """Result of evaluating a single test case.
@@ -18,6 +20,8 @@ class TestResult(BaseModel):
         score: Numerical score from the judge (0.0 to 1.0).
         actual_response: The raw response from the AI backend.
         judge_details: Detailed output from the judge for debugging.
+        backend_metadata: Provider and fallback metadata.
+        agent_trace: Optional typed trace for agent/tool-use evaluations.
         execution_time_ms: Time taken to execute the test in milliseconds.
         error: Error message if the test failed due to an exception.
     """
@@ -35,6 +39,10 @@ class TestResult(BaseModel):
     backend_metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Provider metadata such as model, usage, cache, or fallback mode",
+    )
+    agent_trace: AgentTrace | None = Field(
+        default=None,
+        description="Structured tool-use trace for agent evaluations",
     )
     execution_time_ms: float = Field(
         default=0.0, description="Execution time in milliseconds"

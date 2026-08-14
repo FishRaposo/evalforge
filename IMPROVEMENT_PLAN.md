@@ -9,6 +9,11 @@
 > Comprehensive audit of bugs, inconsistencies, missing features, and growth opportunities.
 > Priority levels: **P0** (broken/blocking), **P1** (high value), **P2** (polish), **P3** (long-term growth).
 
+> **Historical status:** the findings below describe an earlier checkout and are not
+> current bug claims. The staged portfolio expansion later added judge calibration,
+> formal agent traces, EvalForge-owned compatibility interfaces, evidence schema v2,
+> and the associated tests. Use `ROADMAP.md` and the live test suite for current state.
+
 ---
 
 ## 1. P0 — Broken Code & Critical Fixes

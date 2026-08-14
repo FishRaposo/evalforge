@@ -10,6 +10,7 @@ from evalforge.backends.base import BaseBackend
 from evalforge.config import get_settings
 from evalforge.models.test_case import TestCase, TestSuite
 from evalforge.models.test_result import TestResult
+from evalforge.models.trace import AgentTrace
 
 
 class BaseRunner(ABC):
@@ -99,6 +100,7 @@ class BaseRunner(ABC):
         response: str,
         judge_details: dict[str, Any] | None = None,
         backend_metadata: dict[str, Any] | None = None,
+        agent_trace: AgentTrace | None = None,
         error: str | None = None,
         elapsed_ms: float = 0.0,
     ) -> TestResult:
@@ -125,6 +127,7 @@ class BaseRunner(ABC):
             actual_response=response,
             judge_details=judge_details or {},
             backend_metadata=backend_metadata or {},
+            agent_trace=agent_trace,
             execution_time_ms=elapsed_ms,
             error=error,
         )

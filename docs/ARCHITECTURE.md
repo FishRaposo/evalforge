@@ -14,6 +14,9 @@ graph TB
         Loader[Suite Loader]
         Runner[RAG / Agent Runner]
         Judge[Judge Engine]
+        Calibration[LLM calibration]
+        Trace[AgentTrace]
+        Compatibility[EvalForge core contracts]
     end
 
     subgraph Backends
@@ -31,6 +34,7 @@ graph TB
         JUnit[JUnit XML Reporter]
         SARIF[SARIF Reporter]
         Term[Terminal Reporter]
+        Evidence[Evidence v2]
     end
 
     YAML --> Loader
@@ -45,12 +49,19 @@ graph TB
     Anthropic --> Judge
     LiteLLM --> Judge
     HF --> Judge
+    Judge --> Calibration
+    Runner --> Trace
+    Compatibility --> Judge
+    Compatibility --> Evidence
     Judge --> MD
     Judge --> JSON
     Judge --> HTML
     Judge --> JUnit
     Judge --> SARIF
     Judge --> Term
+    Judge --> Evidence
+    Trace --> Evidence
+    Calibration --> Evidence
 ```
 
 ## Data Flow
@@ -80,7 +91,9 @@ Parses YAML test suite files into validated Pydantic models. Handles include dir
 Orchestrate test execution. The RAG runner handles single-turn Q&A evaluation. The Agent runner handles multi-step tool-use sequences. Both use async execution for parallel test runs.
 
 ### Backends (`evalforge/backends/`)
-Abstract interface to AI model providers. The mock backend returns pre-configured responses for testing. The OpenAI-compatible backend calls any OpenAI API endpoint (including Azure, local models via Ollama, etc.).
+Abstract interface to AI model providers. The mock backend returns pre-configured
+responses for testing. Provider backends route completions through the local
+`LLMClientFactory`; adapters are lazy and the offline path needs no credentials.
 
 ### Judges (`evalforge/judges/`)
 Evaluate responses against expected behavior. Each judge type handles a specific evaluation dimension:
@@ -97,8 +110,23 @@ Transform evaluation results into human and machine-readable formats. Markdown f
 ### Models (`evalforge/models/`)
 Pydantic v2 models that define the type-safe data contracts throughout the system. All data flows through these validated models.
 
+`CalibrationSummary`, `JudgeSample`, `ToolCall`, `TraceStep`, and `AgentTrace` are
+additive models. Runtime-only timing metadata is excluded by evidence canonicalization.
+
+### Compatibility (`evalforge/core/`)
+EvalForge-owned interfaces for judges/drift, provider clients, dataset ingestion, and
+report repositories. They delegate to the existing implementations until golden-output
+parity proves a replacement safe.
+
 ### Storage (`evalforge/storage/`)
-SQLite-backed persistence for evaluation run history. Stores reports, baselines, and run metadata for longitudinal comparison and dashboard consumption.
+SQLite-backed persistence for evaluation run history. `SQLiteReportRepository` wraps
+the current `HistoryStore` schema and methods for longitudinal comparison and dashboard
+consumption.
+
+### Evidence (`evalforge/evidence.py`)
+Writes schema-v2 manifests, canonical reports, optional drift/calibration/trace payloads,
+and checksums. Verification accepts schema v1 and v2 and rejects tampering or malformed
+optional payloads.
 
 ### API (`evalforge/server/`)
 FastAPI application exposing REST endpoints for run history, comparison, and baseline management. Consumed by the Next.js dashboard and CI integrations.

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "evalforge"
 version = "0.1.0"
-description = "Regression testing for RAG and agentic AI: retrieval and conversational evaluations."
+description = "Offline-first regression testing for RAG and agentic AI, with inspectable evidence."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

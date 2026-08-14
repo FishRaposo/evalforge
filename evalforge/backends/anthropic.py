@@ -6,7 +6,7 @@ import os
 from typing import Any
 
 from evalforge.backends.base import BackendResponse, BaseBackend
-from evalforge.execution import SimulatedEvaluator
+from evalforge.core.clients import LLMClientFactory
 
 
 class AnthropicBackend(BaseBackend):
@@ -21,58 +21,35 @@ class AnthropicBackend(BaseBackend):
         self._api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self._model = model
         self._client: Any | None = None
+        self._client_factory = LLMClientFactory()
 
     async def query(
         self, prompt: str, context: dict[str, Any] | None = None
     ) -> BackendResponse:
-        if not self._api_key:
-            sim = SimulatedEvaluator(seed=hash(prompt) % 2**31)
-            result = sim.evaluate(prompt)
-            return BackendResponse(
-                content=result["reasoning"],
-                metadata={
-                    "method": "simulated",
-                    "model": self._model,
-                    "tokens_used": 0,
-                },
-            )
-
         if self._client is None:
-            import anthropic
-
-            anthropic_module: Any = anthropic
-            client_factory = anthropic_module.AsyncAnthropic
-            self._client = client_factory(api_key=self._api_key)
+            self._client = self._client_factory.create(
+                provider="anthropic", model=self._model, api_key=self._api_key
+            )
 
         client = self._client
         assert client is not None
-        messages = [{"role": "user", "content": prompt}]
-        if context and "history" in context:
-            messages = context["history"] + messages
-
-        response = await client.messages.create(
-            model=self._model,
-            max_tokens=1024,
-            messages=messages,
+        completion = await client.complete(
+            prompt, context=context, temperature=0.0, max_tokens=1024
         )
-        text = response.content[0].text if response.content else ""
-        tokens_used = 0
-        if response.usage:
-            tokens_used = response.usage.input_tokens + response.usage.output_tokens
+        metadata = {
+            **completion.metadata,
+            "provider": completion.provider,
+            "model": completion.model or self._model,
+            "usage": completion.usage,
+            "tokens_used": completion.usage.get("total_tokens", 0),
+            "cache_hit": completion.cache_hit,
+            "fallback_path": completion.fallback_path,
+        }
+        if completion.fallback_path:
+            metadata.setdefault("method", "simulated")
         return BackendResponse(
-            content=text,
-            metadata={
-                "model": self._model,
-                "usage": {
-                    "input_tokens": response.usage.input_tokens
-                    if response.usage
-                    else 0,
-                    "output_tokens": response.usage.output_tokens
-                    if response.usage
-                    else 0,
-                },
-                "tokens_used": tokens_used,
-            },
+            content=completion.content,
+            metadata=metadata,
         )
 
     async def health_check(self) -> bool:
