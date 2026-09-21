@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [compliance, setCompliance] = useState<ComplianceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [demo, setDemo] = useState(false);
+  const [demoForced, setDemoForced] = useState(false);
   const [demoDetail, setDemoDetail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function DashboardPage() {
       setRuns(result.data.runs);
       setCompliance(result.data.compliance);
       setDemo(result.demo);
+      setDemoForced(result.forced);
       setDemoDetail(result.error);
       setLoading(false);
     }
@@ -81,7 +83,7 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {demo && <DemoBanner detail={demoDetail} />}
+        {demo && <DemoBanner detail={demoDetail} forced={demoForced} />}
 
         {loading && (
           <div

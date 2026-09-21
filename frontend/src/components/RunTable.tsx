@@ -1,17 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ScoreBar } from "./ScoreBar";
-
-interface EvalRun {
-  id: string;
-  suite_name: string;
-  timestamp: string;
-  pass_rate: number;
-  avg_score: number;
-  total_tests: number;
-  passed: number;
-  failed: number;
-}
+import type { EvalRun } from "@/lib/types";
 
 interface RunTableProps {
   runs: EvalRun[];
@@ -36,7 +27,15 @@ export function RunTable({ runs }: RunTableProps) {
       <tbody>
         {runs.map((r) => (
           <tr key={r.id} className="border-b border-slate-800">
-            <td className="py-2 font-medium">{r.suite_name}</td>
+            <td className="py-2 font-medium">
+              <Link
+                href={`/runs/${r.id}`}
+                className="text-sky-400 hover:text-sky-300 hover:underline"
+              >
+                {r.suite_name}
+              </Link>
+              <span className="ml-2 text-xs text-slate-500">{r.id}</span>
+            </td>
             <td className="py-2">
               <ScoreBar score={r.avg_score} />
             </td>

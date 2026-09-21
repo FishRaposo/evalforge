@@ -4,22 +4,33 @@ import { useState } from "react";
 import { DemoBanner } from "@/components/DemoBanner";
 import { Nav } from "@/components/Nav";
 import { ScoreBar } from "@/components/ScoreBar";
-import { fetchCompare } from "@/lib/api";
+import { DEMO_MODE, fetchCompare } from "@/lib/api";
+import { demoCompare } from "@/lib/demoData";
 import type { CompareResult } from "@/lib/types";
 
+const DEFAULT_BASELINE = "demo-1";
+const DEFAULT_CURRENT = "demo-7";
+
+const INITIAL_COMPARE = DEMO_MODE
+  ? demoCompare(DEFAULT_BASELINE, DEFAULT_CURRENT)
+  : null;
+
 export default function ComparePage() {
-  const [runA, setRunA] = useState("");
-  const [runB, setRunB] = useState("");
-  const [result, setResult] = useState<CompareResult | null>(null);
+  const [runA, setRunA] = useState(DEFAULT_BASELINE);
+  const [runB, setRunB] = useState(DEFAULT_CURRENT);
+  const [result, setResult] = useState<CompareResult | null>(INITIAL_COMPARE);
   const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(false);
+  const [demo, setDemo] = useState(DEMO_MODE);
+  const [forced, setForced] = useState(DEMO_MODE);
   const [demoDetail, setDemoDetail] = useState<string | null>(null);
 
   async function handleCompare() {
+    if (!runA || !runB) return;
     setLoading(true);
-    const res = await fetchCompare(Number(runA), Number(runB));
+    const res = await fetchCompare(runA, runB);
     setResult(res.data);
     setDemo(res.demo);
+    setForced(res.forced);
     setDemoDetail(res.error);
     setLoading(false);
   }
@@ -28,33 +39,48 @@ export default function ComparePage() {
     <>
       <Nav />
       <main className="max-w-3xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold mb-6">Compare Runs</h1>
+        <h1 className="text-2xl font-bold mb-2">Compare Runs</h1>
+        <p className="text-sm text-slate-400 mb-6">
+          Baseline{" "}
+          <code className="rounded bg-slate-800 px-1">{DEFAULT_BASELINE}</code>{" "}
+          vs current{" "}
+          <code className="rounded bg-slate-800 px-1">{DEFAULT_CURRENT}</code>{" "}
+          — drift surfaced before ship.
+        </p>
 
-        {demo && <DemoBanner detail={demoDetail} />}
+        {demo && <DemoBanner detail={demoDetail} forced={forced} />}
 
         <div className="bg-slate-800 rounded-lg p-5 mb-6">
           <div className="flex gap-4 mb-4">
             <div className="flex-1">
-              <label htmlFor="runA" className="block text-sm text-slate-400 mb-1">
-                Run A ID
+              <label
+                htmlFor="runA"
+                className="block text-sm text-slate-400 mb-1"
+              >
+                Baseline run
               </label>
               <input
                 id="runA"
-                type="number"
+                type="text"
                 value={runA}
                 onChange={(e) => setRunA(e.target.value)}
+                placeholder={DEFAULT_BASELINE}
                 className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
               />
             </div>
             <div className="flex-1">
-              <label htmlFor="runB" className="block text-sm text-slate-400 mb-1">
-                Run B ID
+              <label
+                htmlFor="runB"
+                className="block text-sm text-slate-400 mb-1"
+              >
+                Current run
               </label>
               <input
                 id="runB"
-                type="number"
+                type="text"
                 value={runB}
                 onChange={(e) => setRunB(e.target.value)}
+                placeholder={DEFAULT_CURRENT}
                 className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
               />
             </div>
@@ -71,10 +97,15 @@ export default function ComparePage() {
 
         {result && (
           <div className="bg-slate-800 rounded-lg p-5">
-            <h2 className="text-lg font-semibold mb-4">Comparison Results</h2>
+            <h2 className="text-lg font-semibold mb-1">Comparison Results</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              {String(result.run_a_id)} → {String(result.run_b_id)}
+            </p>
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-slate-400 mb-1">Pass Rate Delta</div>
+                <div className="text-sm text-slate-400 mb-1">
+                  Pass Rate Delta
+                </div>
                 <ScoreBar
                   score={Math.max(
                     0,
@@ -87,7 +118,9 @@ export default function ComparePage() {
                 </div>
               </div>
               <div>
-                <div className="text-sm text-slate-400 mb-1">Avg Score Delta</div>
+                <div className="text-sm text-slate-400 mb-1">
+                  Avg Score Delta
+                </div>
                 <ScoreBar
                   score={Math.max(
                     0,

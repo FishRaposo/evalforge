@@ -220,6 +220,26 @@ falls back to deterministic **demo-mode** data and shows a banner, so the UI is 
 usable. It includes loading / empty / error states and an `ErrorBoundary`. Tests run with
 `npm test` (vitest component tests) and `npm run test:e2e` (Playwright).
 
+### Portfolio demo (forced UI mode)
+
+For portfolio visitors and reviewers, the dashboard ships a **forced demo** that never
+calls the history API. It tells one story: **quality drift caught before ship**.
+
+```bash
+cd frontend && npm ci && npm run demo:ui   # :3002 with NEXT_PUBLIC_DEMO_MODE=true
+```
+
+What you see:
+
+| Surface | What it shows |
+|---------|----------------|
+| **Dashboard** | Suite `rag_regression_v2` — retrieval regression (failed), citation failure (failed), correct refusal (passed) |
+| **Run detail** (`/runs/demo-7`) | Per-case judge breakdown with retrieval, citation, and refusal scores |
+| **Compare** | Baseline `demo-1` vs current `demo-7` — pass-rate and score deltas surface the regression |
+
+Set `NEXT_PUBLIC_DEMO_MODE=true` (see `frontend/.env.demo`) to force curated data.
+Without it, the UI still falls back to the same scenario when `evalforge serve` is down.
+
 ## Example workflow
 
 Define a test suite in YAML:

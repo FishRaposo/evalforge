@@ -1,22 +1,29 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchCompare, fetchDashboard } from "./api";
-import { DEMO_RUNS, demoCompare } from "./demoData";
+import { fetchCompare, fetchDashboard, fetchRun } from "./api";
+import { DEMO_CASES, DEMO_RUNS, demoCompare } from "./demoData";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("demoCompare", () => {
-  it("computes deltas from the static demo runs", () => {
-    const result = demoCompare(1, 2);
-    const a = DEMO_RUNS[0];
-    const b = DEMO_RUNS[1];
-    expect(result.pass_rate_delta).toBeCloseTo(b.pass_rate - a.pass_rate);
-    expect(result.avg_score_delta).toBeCloseTo(b.avg_score - a.avg_score);
+  it("computes deltas between demo-1 baseline and demo-7 current", () => {
+    const result = demoCompare("demo-1", "demo-7");
+    const baseline = DEMO_RUNS.find((r) => r.id === "demo-1")!;
+    const current = DEMO_RUNS.find((r) => r.id === "demo-7")!;
+    expect(result.pass_rate_delta).toBeCloseTo(
+      current.pass_rate - baseline.pass_rate
+    );
+    expect(result.avg_score_delta).toBeCloseTo(
+      current.avg_score - baseline.avg_score
+    );
+    expect(result.run_a_id).toBe("demo-1");
+    expect(result.run_b_id).toBe("demo-7");
   });
 
-  it("wraps indices safely", () => {
-    expect(() => demoCompare(99, 100)).not.toThrow();
+  it("falls back to edge runs for unknown ids", () => {
+    expect(() => demoCompare("unknown-a", "unknown-b")).not.toThrow();
   });
 });
 
@@ -69,25 +76,42 @@ describe("fetchDashboard", () => {
 describe("fetchCompare", () => {
   it("returns live comparison when the API succeeds", async () => {
     const payload = {
-      run_a_id: 1,
-      run_b_id: 2,
-      pass_rate_delta: 0.1,
-      avg_score_delta: 0.05,
+      run_a_id: "demo-1",
+      run_b_id: "demo-7",
+      pass_rate_delta: -0.67,
+      avg_score_delta: -0.39,
     };
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => payload })
     );
-    const result = await fetchCompare(1, 2);
+    const result = await fetchCompare("demo-1", "demo-7");
     expect(result.demo).toBe(false);
-    expect(result.data.pass_rate_delta).toBe(0.1);
+    expect(result.data.pass_rate_delta).toBe(-0.67);
   });
 
   it("falls back to a demo comparison on failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-    const result = await fetchCompare(1, 2);
+    const result = await fetchCompare("demo-1", "demo-7");
     expect(result.demo).toBe(true);
-    expect(result.data.run_a_id).toBe(1);
-    expect(result.data.run_b_id).toBe(2);
+    expect(result.data.run_a_id).toBe("demo-1");
+    expect(result.data.run_b_id).toBe("demo-7");
+  });
+});
+
+describe("fetchRun", () => {
+  it("returns demo cases for demo-7 when the API is offline", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const result = await fetchRun("demo-7");
+    expect(result.demo).toBe(true);
+    expect(result.data?.cases).toHaveLength(3);
+    expect(result.data?.cases[0].category).toBe("retrieval_regression");
+  });
+
+  it("includes all three scenario categories in demo data", () => {
+    const categories = DEMO_CASES.map((c) => c.category);
+    expect(categories).toContain("retrieval_regression");
+    expect(categories).toContain("citation_failure");
+    expect(categories).toContain("correct_refusal");
   });
 });
