@@ -229,16 +229,15 @@ calls the history API. It tells one story: **quality drift caught before ship**.
 cd frontend && npm ci && npm run demo:ui   # :3002 with NEXT_PUBLIC_DEMO_MODE=true
 ```
 
-What you see:
+Open http://localhost:3002.
 
-| Surface | What it shows |
-|---------|----------------|
-| **Dashboard** | Suite `rag_regression_v2` — retrieval regression (failed), citation failure (failed), correct refusal (passed) |
-| **Run detail** (`/runs/demo-7`) | Per-case judge breakdown with retrieval, citation, and refusal scores |
-| **Compare** | Baseline `demo-1` vs current `demo-7` — pass-rate and score deltas surface the regression |
+**Click path:**
 
-Set `NEXT_PUBLIC_DEMO_MODE=true` (see `frontend/.env.demo`) to force curated data.
-Without it, the UI still falls back to the same scenario when `evalforge serve` is down.
+1. **Runs** → `demo-7` — failed retrieval case: judge scores show gold context missing from top-3 chunks.
+2. **Dashboard** — suite `rag_regression_v2`: retrieval regression (failed), citation failure (failed), correct refusal (passed).
+3. **Compare** — baseline `demo-1` vs current `demo-7`; pass-rate and score deltas surface the regression before ship.
+
+Set `NEXT_PUBLIC_DEMO_MODE=true` to force curated data. Without it, the UI falls back to the same scenario when `evalforge serve` is down.
 
 ## Example workflow
 

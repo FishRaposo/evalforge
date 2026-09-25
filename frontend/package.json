@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "demo:ui": "next dev -p 3002 --env-file .env.demo"
+    "demo:ui": "cross-env NEXT_PUBLIC_DEMO_MODE=true next dev -p 3002 -H 127.0.0.1"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.0",
@@ -33,6 +33,7 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^6.0.5",
+    "cross-env": "^7.0.3",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.0",
     "jsdom": "^25.0.0",
