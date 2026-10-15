@@ -75,8 +75,22 @@ versions. A marker may list several sources separated by `;`, `,` or `|`, and a 
 | `refund_policy_v2.md` | `... [refund_policy_v1.md]` | fail (wrong version) |
 | `Refund Policy 2024` | `Under our 2024 refund policy, ...` | fail (no citation) |
 
-The historical substring and 60% word-overlap matching is available per case with
-`metadata: {match: fuzzy}`.
+Any parenthetical counts as a marker, so `Centers for Disease Control (CDC)` cites `CDC`.
+
+**Not resolved in strict mode**: the judge does not follow numbered or footnote references,
+so these all fail even when the source is right:
+
+| Style | Example (expected `CDC`) |
+|---|---|
+| Numbered reference plus a sources block | `... [1].` then `Sources: 1. CDC` |
+| Trailing source line | `...` then `Source: CDC` on its own line |
+| Footnote | `...[^1]` then `[^1]: CDC` |
+| Extra words in the marker | `[CDC 2024]` |
+
+**Migrating a suite**: if your system cites in one of those styles, either set
+`metadata: {match: fuzzy}` on the affected cases (the historical substring and 60%
+word-overlap matching), or have the system cite source names directly in a marker
+(`[CDC]`, `[CDC; WHO]`), or make the expected source the exact marker text (`CDC 2024`).
 
 ---
 
