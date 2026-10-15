@@ -14,7 +14,9 @@ test.describe("Demo mode (no backend)", () => {
     await expect(banner).toContainText("Demo mode");
     // Demo runs render in the table.
     await expect(page.getByText("Recent Evaluation Runs")).toBeVisible();
-    await expect(page.getByText("rag_regression_v2").first()).toBeVisible();
+    await expect(
+      page.getByRole("table").getByText("rag_regression_v2").first(),
+    ).toBeVisible();
   });
 
   test("metrics cards populate from demo data", async ({ page }) => {
