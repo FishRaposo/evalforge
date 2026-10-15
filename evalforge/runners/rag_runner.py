@@ -86,7 +86,9 @@ class RAGRunner(BaseRunner):
                 elapsed_ms=elapsed,
             )
 
-        judge_result = judge.judge(test_case, response.content)
+        judge_result = judge.judge_with_context(
+            test_case, response.content, response.metadata
+        )
         return self._create_result(
             test_case=test_case,
             passed=judge_result.passed,

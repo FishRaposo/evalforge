@@ -60,7 +60,23 @@ EvalForge supports multiple test types, each with a corresponding judge that eva
       - "NASA Climate Data"
 ```
 
-**Scoring**: Ratio of expected sources found in the response. Score 1.0 if all required sources are cited, proportional otherwise.
+**Scoring**: Ratio of expected sources cited. Score 1.0 if all required sources are cited, proportional otherwise.
+
+**Matching (strict by default)**: a source counts only when it appears inside a citation
+marker (`[...]`, `(...)` or double quotes) and its normalized identifier equals the expected
+source. Normalization ignores case, whitespace and separator punctuation, not words, years or
+versions. A marker may list several sources separated by `;`, `,` or `|`, and a leading
+`Source:` or `see` label is ignored.
+
+| Expected | Response | Result |
+|---|---|---|
+| `Refund Policy 2024` | `... [Refund Policy 2024]` | pass |
+| `Refund Policy 2024` | `... [Refund Policy 2023]` | fail (wrong year) |
+| `refund_policy_v2.md` | `... [refund_policy_v1.md]` | fail (wrong version) |
+| `Refund Policy 2024` | `Under our 2024 refund policy, ...` | fail (no citation) |
+
+The historical substring and 60% word-overlap matching is available per case with
+`metadata: {match: fuzzy}`.
 
 ---
 
@@ -130,7 +146,19 @@ from evidence reproducibility hashes.
       - "customer_rights_2024.pdf"
 ```
 
-**Scoring**: Ratio of expected documents found in retrieved context. Score 1.0 if all required documents are retrieved.
+**Scoring**: Ratio of expected documents retrieved. Score 1.0 if all required documents are retrieved.
+
+**Evidence**: when the backend reports what it retrieved in
+`BackendResponse.metadata["retrieved_ids"]` (a list of document IDs), the judge scores from
+that list by normalized ID and ignores the answer text, so an answer that names the right
+document while retrieval returned the wrong one fails. Without `retrieved_ids` it falls back
+to the answer text and requires each expected identifier verbatim (case-insensitive, on token
+boundaries): `refund_policy_v1.md` does not satisfy `refund_policy_v2.md`, and an answer that
+only paraphrases the topic does not count. `judge_details["evidence"]` records which source
+was used (`retrieved_ids` or `response_text`).
+
+The historical stem and 50% word-overlap matching on the answer text is available per case
+with `metadata: {match: fuzzy}`; it never loosens matching against `retrieved_ids`.
 
 ---
 

@@ -132,9 +132,7 @@ class TestCitationCheckJudge:
             expected={"sources": ["NASA Climate Data"]},
         )
 
-        result = judge.judge(
-            test_case, "According to NASA Climate Data, temperatures are rising."
-        )
+        result = judge.judge(test_case, "Temperatures are rising [NASA Climate Data].")
 
         assert result.passed is True
         assert result.score == 1.0
