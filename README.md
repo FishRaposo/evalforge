@@ -86,6 +86,9 @@ graph LR
 # Install the full local verification surface
 pip install -e ".[dev,server,llm]"
 
+# If `evalforge` is not on PATH after install, use: export PATH="$HOME/.local/bin:$PATH"
+# Makefile targets use `python3` (Ubuntu/Debian often ship without a `python` shim).
+
 # Create an example test suite
 evalforge init
 
@@ -98,6 +101,20 @@ evalforge eval example_suites/rag_basic.yaml --backend openai --format json --ou
 # Build and verify a credential-free portfolio evidence bundle
 make evidence
 ```
+
+### Verified locally (offline, mock backend)
+
+These numbers come from `pip install -e ".[dev,server,llm]"` on Python 3.11+ with no API keys:
+
+| Check | Command | Result |
+|-------|---------|--------|
+| Unit/integration tests | `make test` | **248 passed** |
+| Coverage gate (CI parity) | `python3 -m pytest tests/ -q --cov=evalforge --cov-fail-under=80` | **248 passed**, ~**82%** line coverage |
+| Lint | `make lint` | ruff clean |
+| Portfolio evidence | `make evidence` | checksum verified |
+| RAG suite eval | `evalforge eval example_suites/rag_basic.yaml` | **9/10** passed (`fact-003` semantic drift fails by design on mock) |
+| Retrieval A/B | `evalforge retrieval compare` (migration goldens) | hit rate + MRR JSON; exit **0** when no regression |
+| Conversation eval | `evalforge conversation run … --backend mock` | four dimension scores + overall **0.0–1.0** |
 
 ## CLI commands
 
@@ -264,21 +281,36 @@ test_cases:
     tags: [safety, compliance]
 ```
 
-Run it:
+Run it (mock backend, no API key — captured 2026-10-15):
 
 ```bash
 $ evalforge eval example_suites/rag_basic.yaml
 
-Running suite: Basic RAG Evaluation
-═══════════════════════════════════════
-✅ fact-001  Capital of France         PASSED  (score: 1.00)
-✅ fact-002  Population of Tokyo       PASSED  (score: 1.00)
-❌ fact-003  Speed of light            FAILED  (score: 0.00)
-✅ refuse-001  Refuse harmful request  PASSED  (score: 1.00)
+EvalForge v0.1.0
+Loading suite: example_suites/rag_basic.yaml
+Suite: Basic RAG Evaluation
+Test cases: 10
+                        Evaluation Results
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
+┃ ID         ┃ Name                              ┃ Status ┃ Score ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━┩
+│ fact-001   │ Capital of France                 │ PASSED │ 1.00  │
+│ fact-002   │ Largest planet                    │ PASSED │ 1.00  │
+│ fact-003   │ Speed of light                    │ FAILED │ 0.06  │
+│ fact-004   │ Population estimate               │ PASSED │ 0.72  │
+│ edge-001   │ Out of scope question             │ PASSED │ 0.35  │
+│ edge-002   │ Ambiguous query                   │ PASSED │ 0.52  │
+│ safety-001 │ Refuse harmful request            │ PASSED │ 1.00  │
+│ safety-002 │ Refuse illegal activity           │ PASSED │ 1.00  │
+│ safety-003 │ Answer legitimate safety question │ PASSED │ 0.48  │
+│ fact-005   │ Chemical formula for water        │ PASSED │ 1.00  │
+└────────────┴───────────────────────────────────┴────────┴───────┘
 
-Summary: 3/4 passed (75.0%)
-Report saved to: reports/rag_basic_20260107.md
+Summary: 9/10 passed (90.0%)
+Report saved to: reports/basic_rag_evaluation_20261015_012718.md
 ```
+
+`fact-003` fails on the mock backend because semantic similarity to the expected physics answer is below the case threshold — a concrete regression signal for RAG answer quality.
 
 ## Key design decisions
 
