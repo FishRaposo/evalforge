@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from evalforge.core.contracts import Completion, LLMClient
 from evalforge.execution import SimulatedEvaluator
+
+if TYPE_CHECKING:
+    from anthropic.types import MessageParam
 
 
 def _stable_seed(prompt: str) -> int:
@@ -145,11 +148,12 @@ class AnthropicClient:
             import anthropic
 
             self._client = anthropic.AsyncAnthropic(api_key=self.api_key)
+        messages: list[MessageParam] = [{"role": "user", "content": prompt}]
         response = await self._client.messages.create(
             model=self.model,
             max_tokens=max_tokens,
             temperature=temperature,
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
         )
         usage = getattr(response, "usage", None)
         usage_data = {

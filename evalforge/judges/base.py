@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -45,3 +46,25 @@ class BaseJudge(ABC):
             A JudgeResult with pass status, score, and details.
         """
         ...
+
+    def judge_with_context(
+        self,
+        test_case: TestCase,
+        response: str,
+        backend_metadata: Mapping[str, Any] | None = None,
+    ) -> JudgeResult:
+        """Evaluate a response with the backend's response metadata available.
+
+        Runners call this so judges that need structured backend output (for
+        example ``retrieved_ids`` for the retrieval judge) can read it. The
+        default ignores the metadata and delegates to :meth:`judge`.
+
+        Args:
+            test_case: The test case defining expected behavior.
+            response: The actual AI response to evaluate.
+            backend_metadata: ``BackendResponse.metadata`` for this response.
+
+        Returns:
+            A JudgeResult with pass status, score, and details.
+        """
+        return self.judge(test_case, response)

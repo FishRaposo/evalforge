@@ -14,7 +14,9 @@ test.describe("Demo mode (no backend)", () => {
     await expect(banner).toContainText("Demo mode");
     // Demo runs render in the table.
     await expect(page.getByText("Recent Evaluation Runs")).toBeVisible();
-    await expect(page.getByText("rag_basic").first()).toBeVisible();
+    await expect(
+      page.getByRole("table").getByText("rag_regression_v2").first(),
+    ).toBeVisible();
   });
 
   test("metrics cards populate from demo data", async ({ page }) => {
@@ -26,8 +28,8 @@ test.describe("Demo mode (no backend)", () => {
 
   test("compare page falls back to a demo comparison", async ({ page }) => {
     await page.goto("/compare");
-    await page.fill("#runA", "1");
-    await page.fill("#runB", "2");
+    await page.fill("#runA", "demo-1");
+    await page.fill("#runB", "demo-7");
     await page.getByRole("button", { name: "Compare" }).click();
     await expect(page.getByText("Comparison Results")).toBeVisible();
     await expect(page.getByTestId("demo-banner")).toBeVisible();
