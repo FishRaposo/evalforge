@@ -4,10 +4,10 @@ test.describe("Dashboard", () => {
   test("homepage loads with stats cards", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("text=EvalForge Dashboard")).toBeVisible();
-    await expect(page.locator("text=Eval Runs")).toBeVisible();
-    await expect(page.locator("text=Pass Rate")).toBeVisible();
-    await expect(page.locator("text=Avg Score")).toBeVisible();
-    await expect(page.locator("text=Latest Compliance")).toBeVisible();
+    await expect(page.getByText("EVAL RUNS")).toBeVisible();
+    await expect(page.getByText("CUMULATIVE PASS RATE")).toBeVisible();
+    await expect(page.getByText("AVG SCORE")).toBeVisible();
+    await expect(page.getByText("LATEST COMPLIANCE")).toBeVisible();
   });
 
   test("runs table renders", async ({ page }) => {
@@ -18,8 +18,8 @@ test.describe("Dashboard", () => {
   test("compare page", async ({ page }) => {
     await page.goto("/compare");
     await expect(page.locator("text=Compare Runs")).toBeVisible();
-    await expect(page.locator("text=Run A ID")).toBeVisible();
-    await expect(page.locator("text=Run B ID")).toBeVisible();
+    await expect(page.getByLabel("Baseline run")).toBeVisible();
+    await expect(page.getByLabel("Current run")).toBeVisible();
   });
 
   test("navigation links work", async ({ page }) => {
