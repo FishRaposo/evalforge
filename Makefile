@@ -1,4 +1,4 @@
-PYTHON := python
+PYTHON := python3
 
 .PHONY: install dev test lint format typecheck demo evidence serve docker-up docker-down clean \
         help eval-basic eval-citation eval-compliance eval-all build-frontend test-e2e

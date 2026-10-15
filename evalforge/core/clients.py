@@ -145,12 +145,13 @@ class AnthropicClient:
             import anthropic
 
             self._client = anthropic.AsyncAnthropic(api_key=self.api_key)
-        response = await self._client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        create_kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        response = await self._client.messages.create(**create_kwargs)
         usage = getattr(response, "usage", None)
         usage_data = {
             "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
