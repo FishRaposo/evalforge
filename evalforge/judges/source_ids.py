@@ -28,6 +28,7 @@ def normalize_source_id(value: str) -> str:
     Lowercases and collapses every run of non-alphanumeric characters to a single
     space, so ``Refund_Policy-v2.MD`` and ``refund policy v2 md`` are equal while
     ``refund_policy_v1.md`` and ``refund_policy_v2.md`` stay different.
+    Symbols are dropped too, so ``C++``, ``C#`` and ``C`` all normalize to ``c``.
     """
     return _SEPARATORS.sub(" ", value.lower()).strip()
 
