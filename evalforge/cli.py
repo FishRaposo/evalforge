@@ -23,7 +23,9 @@ from evalforge.execution import resolve_mode
 
 if TYPE_CHECKING:
     from evalforge.backends.base import BaseBackend
+    from evalforge.drift import DriftResult
     from evalforge.judges.base import BaseJudge
+    from evalforge.models.report import Report
     from evalforge.models.test_case import TestCaseType
     from evalforge.models.test_result import TestResult
     from evalforge.reporters.base import BaseReporter
@@ -157,6 +159,14 @@ def eval(  # noqa: C901
         min=0.0,
         help="Maximum allowed pass-rate or average-score drop",
     ),
+    response_file: Path | None = typer.Option(
+        None, "--response-file", help="Versioned saved JSONL responses (backend saved)"
+    ),
+    strict_evidence: bool = typer.Option(
+        False,
+        "--strict-evidence",
+        help="Strict evidence gate: 0 pass, 1 fail, 2 cannot evaluate",
+    ),
 ) -> None:
     """Run an evaluation suite against an AI backend.
 
@@ -172,6 +182,37 @@ def eval(  # noqa: C901
     from evalforge.reporters.json_report import JsonReporter
     from evalforge.reporters.markdown import MarkdownReporter
     from evalforge.runners.rag_runner import RAGRunner
+
+    if backend == "saved":
+        if response_file is None or from_hf is not None or judge_plugin is not None:
+            console.print(
+                "[red]Saved evaluation requires --response-file and forbids "
+                "dataset downloads/plugins[/red]"
+            )
+            raise typer.Exit(code=2)
+        _eval_saved(
+            suite_path,
+            response_file,
+            strict=strict_evidence,
+            output=output,
+            format=format,
+            save=save,
+            db_path=db_path,
+            evidence_dir=evidence_dir,
+            baseline=baseline,
+            drift_threshold=drift_threshold,
+        )
+        return
+    if strict_evidence:
+        console.print(
+            "[red]Cannot evaluate strict evidence: use --backend saved with "
+            "structured evidence; simulated or legacy quality scoring "
+            "is ineligible[/red]"
+        )
+        raise typer.Exit(code=2)
+    if response_file is not None:
+        console.print("[red]--response-file requires --backend saved[/red]")
+        raise typer.Exit(code=2)
 
     started_at = datetime.now(timezone.utc)
     console.print(f"\n[bold blue]EvalForge[/bold blue] v{__version__}")
@@ -251,6 +292,12 @@ def eval(  # noqa: C901
             "mode": resolve_mode(),
             "suite_path": str(suite_path),
             "compatibility_layer": "evalforge.core",
+            "assessment": {
+                "origin": "synthetic" if backend == "mock" else "unknown",
+                "execution_mode": resolve_mode(),
+                "quality_validated": False,
+                "scope": "legacy_checks",
+            },
         },
     )
 
@@ -378,6 +425,122 @@ def eval(  # noqa: C901
     if drift_result is not None and drift_result.is_regression:
         console.print("[red]Regression detected vs evidence baseline[/red]")
         raise typer.Exit(code=1)
+
+
+def _compare_saved_baseline(
+    report: Report, baseline: Path, *, strict: bool, threshold: float
+) -> DriftResult:
+    """Compare saved runs only when their contracts and assessment modes agree."""
+    from evalforge.drift import DriftDetector
+
+    previous = DriftDetector.load_report(baseline)
+    comparable = (
+        all(
+            report.metadata.get(key) not in (None, "", "unknown")
+            and previous.metadata.get(key) == report.metadata.get(key)
+            for key in ("dataset_revision", "suite_contract")
+        )
+        and previous.metadata.get("strict_evidence", True) == strict
+    )
+    if not comparable:
+        raise ValueError(
+            "Saved baseline is not comparable: dataset revision, "
+            "suite contract and strict mode must match"
+        )
+    return DriftDetector(threshold=threshold).compare(previous, report)
+
+
+def _persist_saved_report(report: Report, db_path: str | None) -> None:
+    """Persist the completed assessment independently from optional file exports."""
+    from evalforge.storage.history import HistoryStore
+
+    try:
+        actual_db = get_db_path(db_path)
+        HistoryStore(actual_db).save_run(report.model_dump(mode="json"))
+    except Exception as exc:
+        console.print(f"[red]Could not save completed report: {exc}[/red]")
+        raise typer.Exit(code=2) from exc
+
+
+def _eval_saved(
+    suite_path: Path,
+    response_file: Path,
+    *,
+    strict: bool,
+    output: Path | None,
+    format: str,
+    save: bool,
+    db_path: str | None,
+    evidence_dir: Path | None,
+    baseline: Path | None,
+    drift_threshold: float,
+) -> None:
+    """Persist/render only after the common saved service returns a full report."""
+    from evalforge.evaluation import evaluate_saved
+    from evalforge.reporters.html import HtmlReporter
+    from evalforge.reporters.json_report import JsonReporter
+    from evalforge.reporters.markdown import MarkdownReporter
+
+    try:
+        outcome = evaluate_saved(suite_path, response_file, strict=strict)
+    except (OSError, ValueError) as exc:
+        console.print(f"[red]Invalid saved evaluation inputs: {exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    report = outcome.report
+    drift = None
+    if baseline is not None:
+        try:
+            drift = _compare_saved_baseline(
+                report, baseline, strict=strict, threshold=drift_threshold
+            )
+        except (OSError, ValueError) as exc:
+            console.print(f"[red]Could not compare baseline: {exc}[/red]")
+            raise typer.Exit(code=2) from exc
+    if save:
+        _persist_saved_report(report, db_path)
+    reporters = {
+        "json": JsonReporter(),
+        "markdown": MarkdownReporter(),
+        "html": HtmlReporter(),
+    }
+    try:
+        report_path = reporters.get(format, MarkdownReporter()).generate(
+            report, output or Path("./reports")
+        )
+        if evidence_dir is not None:
+            build_evidence_bundle(
+                output_dir=evidence_dir,
+                report=report,
+                suite_path=suite_path,
+                backend="saved",
+                mode="saved",
+                baseline_path=baseline,
+                drift=drift,
+                source_artifacts={
+                    "suite.yaml": suite_path,
+                    "responses.jsonl": response_file,
+                },
+            )
+    except (OSError, ValueError) as exc:
+        console.print(f"[red]Could not export completed evaluation: {exc}[/red]")
+        console.print("Assessment completed; requested export did not complete.")
+        if save:
+            console.print("Completed assessment remains saved in history.")
+        raise typer.Exit(code=2) from exc
+    gate = report.metadata["gate"]
+    label = (
+        "Strict evidence" if strict else "Saved evaluation (strict gate not requested)"
+    )
+    console.print(
+        f"{label}: {gate['status']} | {gate['counts']} | "
+        f"scope={gate['scope']} | quality_validated=false"
+    )
+    console.print(f"Report saved to: {report_path}")
+    exit_code = outcome.exit_code
+    if drift is not None and drift.is_regression and exit_code != 2:
+        exit_code = 1
+    if exit_code:
+        raise typer.Exit(code=exit_code)
 
 
 @evidence_app.command("verify")

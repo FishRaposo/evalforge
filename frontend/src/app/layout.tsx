@@ -1,20 +1,7 @@
-import './globals.css';
-
-export const metadata = {
-  title: 'EvalForge Dashboard',
-  description: 'AI evaluation and compliance analytics',
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body className="min-h-screen bg-slate-900 text-slate-200">
-        {children}
-      </body>
-    </html>
-  );
-}
+import "./globals.css";
+import { AppSession } from "@/components/AppSession";
+import { Nav } from "@/components/Nav";
+export const metadata = { title: "EvalForge — Evidence before release", description: "Catch AI answers that cite the wrong evidence." };
+export default function RootLayout({ children }: {
+    children: React.ReactNode;
+}) { return <html lang="en"><body><AppSession><Nav />{children}</AppSession></body></html>; }

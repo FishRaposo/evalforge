@@ -87,6 +87,18 @@ class RAGRunner(BaseRunner):
             )
 
         judge_result = judge.judge(test_case, response.content)
+        judge_result.details.setdefault(
+            "assessment",
+            {
+                "method": test_case.type.value,
+                "version": "1",
+                "quality_validated": False,
+            },
+        )
+        response.metadata["assessment"] = {
+            "origin": "synthetic" if response.metadata.get("mock") else "unknown",
+            "quality_validated": False,
+        }
         return self._create_result(
             test_case=test_case,
             passed=judge_result.passed,

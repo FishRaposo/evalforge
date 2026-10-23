@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -48,6 +48,11 @@ class TestResult(BaseModel):
         default=0.0, description="Execution time in milliseconds"
     )
     error: str | None = Field(None, description="Error message if test failed")
+    outcome: Literal["passed", "failed", "indeterminate", "error"] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="Strict assessment outcome; absent for legacy reports",
+    )
 
 
 class TestRunResult(BaseModel):

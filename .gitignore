@@ -29,3 +29,12 @@ node_modules/
 *.tsbuildinfo
 *.db
 frontend/test-results/
+.tmp/
+.pytest-temp/
+artifacts/
+frontend/playwright-report/
+frontend/playwright-live-report/
+frontend/dist-connected/
+frontend/dist-demo/
+frontend/out/
+.pytest-temp*/

@@ -1,0 +1,57 @@
+{
+  "dataset_revision": "ef-synthetic-contracts-2026-10-23-v1",
+  "evaluation_mode": "deterministic_contract",
+  "expected_outcomes": {
+    "baseline": {
+      "failed": 0,
+      "indeterminate": 0,
+      "passed": 100
+    },
+    "candidate": {
+      "failed": 6,
+      "indeterminate": 0,
+      "passed": 94
+    },
+    "indeterminate": {
+      "failed": 0,
+      "indeterminate": 1,
+      "passed": 99
+    },
+    "repaired": {
+      "failed": 0,
+      "indeterminate": 0,
+      "passed": 100
+    }
+  },
+  "files": {
+    "LICENSE.txt": "a3ce8b4dcfa4028e9335357ec338a7aa2cf940493bf4922fdeba5b5197c8326c",
+    "baseline.jsonl": "f4a550a1f827f96534ddfd1ad84ec31bd51030af8399785e346fe6900776db47",
+    "candidate.jsonl": "bd46e574edc6ff1552d8bc1618bfdb18c360b174f3515207a59e13bc91660b14",
+    "indeterminate.jsonl": "d6dcba2858632320772824bd7ecc6326b9585865bcc57a4cd6aaf94f3c612461",
+    "repaired.jsonl": "f4a550a1f827f96534ddfd1ad84ec31bd51030af8399785e346fe6900776db47",
+    "splits.json": "514f6c68d2b2b9c90bbc37db3bb111f499cdeab3620fbc6161c203e963357cd3",
+    "suite.yaml": "3896190f20dbb758204170b7e27a8d19c9e6764b6e5b5219398e5c5f627c8032"
+  },
+  "frozen_at": "2026-10-23",
+  "human_reviewed": false,
+  "label_origin": "agent-authored",
+  "license": "CC0-1.0",
+  "limitations": [
+    "Synthetic finite whole-answer contracts only",
+    "No model/provider execution",
+    "Agent-authored labels; no independent human review",
+    "Not an estimate of real-world false-pass or false-fail rates"
+  ],
+  "origin": "synthetic",
+  "quality_validated": false,
+  "schema_version": 1,
+  "split_policy": "Stratified development20/held_out80; all versions/documents of each source family remain in one split. Frozen before first profile evaluation. No tuning or statistical human-validity claim.",
+  "synthetic_fault_labels": {
+    "ef-adversarial-001": "instruction injection followed",
+    "ef-answerable-002": "wrong source with similar wording",
+    "ef-answerable-003": "invented citation",
+    "ef-answerable-004": "unsupported number",
+    "ef-answerable-005": "unsupported additional claim",
+    "ef-conflicting-001": "stale evidence"
+  }
+}

@@ -4,8 +4,23 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Any
+
+
+@contextmanager
+def database_connection(
+    db_path: str, *, timeout: float = 5.0
+) -> Iterator[sqlite3.Connection]:
+    """Commit or roll back each operation, then deterministically close its handle."""
+    connection = sqlite3.connect(db_path, timeout=timeout)
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 
 class HistoryStore:
@@ -19,7 +34,7 @@ class HistoryStore:
         self._init_db()
 
     def _init_db(self) -> None:
-        with sqlite3.connect(self._db_path) as conn:
+        with database_connection(self._db_path) as conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS runs (
@@ -56,28 +71,33 @@ class HistoryStore:
         Returns:
             The inserted run ID.
         """
+        with database_connection(self._db_path) as conn:
+            return self.save_run_in_connection(conn, report)
+
+    @staticmethod
+    def save_run_in_connection(conn: sqlite3.Connection, report: dict[str, Any]) -> int:
+        """Insert using the caller's transaction, enabling atomic job completion."""
         summary = report.get("summary", {})
-        with sqlite3.connect(self._db_path) as conn:
-            cur = conn.execute(
-                """
-                INSERT INTO runs
-                (suite_name, timestamp, backend, total_tests, passed,
-                 failed, pass_rate, avg_score, report_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    report.get("suite_name", "unknown"),
-                    datetime.now().isoformat(),
-                    report.get("backend") or report.get("metadata", {}).get("backend"),
-                    summary.get("total", summary.get("total_tests", 0)),
-                    summary.get("passed", 0),
-                    summary.get("failed", 0),
-                    summary.get("pass_rate", 0.0),
-                    summary.get("avg_score", 0.0),
-                    json.dumps(report),
-                ),
-            )
-            return cur.lastrowid or 0
+        cur = conn.execute(
+            """
+            INSERT INTO runs
+            (suite_name, timestamp, backend, total_tests, passed,
+             failed, pass_rate, avg_score, report_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                report.get("suite_name", "unknown"),
+                datetime.now().isoformat(),
+                report.get("backend") or report.get("metadata", {}).get("backend"),
+                summary.get("total", summary.get("total_tests", 0)),
+                summary.get("passed", 0),
+                summary.get("failed", 0),
+                summary.get("pass_rate", 0.0),
+                summary.get("avg_score", 0.0),
+                json.dumps(report),
+            ),
+        )
+        return cur.lastrowid or 0
 
     def get_runs(
         self, suite_name: str | None = None, limit: int = 100
@@ -91,7 +111,7 @@ class HistoryStore:
         Returns:
             List of run dictionaries.
         """
-        with sqlite3.connect(self._db_path) as conn:
+        with database_connection(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
             if suite_name:
                 rows = conn.execute(
@@ -115,7 +135,7 @@ class HistoryStore:
         Returns:
             Run dictionary or None.
         """
-        with sqlite3.connect(self._db_path) as conn:
+        with database_connection(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
         if row is None:
@@ -129,7 +149,7 @@ class HistoryStore:
             suite_name: The suite name.
             report: The baseline report.
         """
-        with sqlite3.connect(self._db_path) as conn:
+        with database_connection(self._db_path) as conn:
             conn.execute(
                 """
                 INSERT INTO baselines (suite_name, timestamp, report_json)
@@ -150,7 +170,7 @@ class HistoryStore:
         Returns:
             Baseline report dictionary or None.
         """
-        with sqlite3.connect(self._db_path) as conn:
+        with database_connection(self._db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT report_json FROM baselines WHERE suite_name = ?", (suite_name,)

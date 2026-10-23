@@ -48,27 +48,28 @@ describe("fetchDashboard", () => {
     const result = await fetchDashboard();
     expect(result.demo).toBe(false);
     expect(result.data.runs[0].suite_name).toBe("live");
-    expect(result.data.compliance).toHaveLength(1);
+    expect(result.data.compliance).toHaveLength(0);
   });
 
-  it("falls back to demo data when the API errors", async () => {
+  it("keeps API errors visible without substituting sample runs", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) })
     );
     const result = await fetchDashboard();
-    expect(result.demo).toBe(true);
-    expect(result.data.runs).toEqual(DEMO_RUNS);
+    expect(result.demo).toBe(false);
+    expect(result.data.runs).toEqual([]);
     expect(result.error).toContain("503");
   });
 
-  it("falls back to demo data when fetch throws", async () => {
+  it("keeps network failure separate from explicit sample mode", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new Error("network down"))
     );
     const result = await fetchDashboard();
-    expect(result.demo).toBe(true);
+    expect(result.demo).toBe(false);
+    expect(result.data.runs).toEqual([]);
     expect(result.error).toContain("network down");
   });
 });
@@ -87,31 +88,45 @@ describe("fetchCompare", () => {
     );
     const result = await fetchCompare("demo-1", "demo-7");
     expect(result.demo).toBe(false);
-    expect(result.data.pass_rate_delta).toBe(-0.67);
+    expect(result.data?.pass_rate_delta).toBe(-0.67);
   });
 
-  it("falls back to a demo comparison on failure", async () => {
+  it("does not invent a comparison after connection failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     const result = await fetchCompare("demo-1", "demo-7");
-    expect(result.demo).toBe(true);
-    expect(result.data.run_a_id).toBe("demo-1");
-    expect(result.data.run_b_id).toBe("demo-7");
+    expect(result.demo).toBe(false);
+    expect(result.data).toBeNull();
   });
 });
 
 describe("fetchRun", () => {
-  it("returns demo cases for demo-7 when the API is offline", async () => {
+  it("renders canonical serialized report field names without dropping its judge or answer", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ok:true,json:async()=>({id:7,report_json:{metadata:{origin:"synthetic",judge_method:"trusted_source_whole_answer_contract"},results:[{test_case_id:"ef-answerable-002",test_case_name:"Exports",actual_response:"2 exports",passed:false,judge_details:{message:"Wrong source",method:"trusted_source_whole_answer_contract"},backend_metadata:{input:"How many exports?",expected:{answer_contract:{accepted_answers:["2 exports"]}},authoritative_sources:[{id:"policy",version:"1",content:"2 exports"}]}}]}})}));
+    const result=await fetchRun("7");
+    expect(result.data?.cases[0].id).toBe("ef-answerable-002");
+    expect(result.data?.cases[0].actual).toBe("2 exports");
+    expect(result.data?.cases[0].expected).toBe("2 exports");
+    expect(result.data?.cases[0].judges[0].message).toBe("Wrong source");
+  });
+  it("normalizes numeric IDs and preserves unknown legacy evidence", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ok: true, json: async () => ({id: 42, suite_name: "legacy", timestamp: "2026-10-23", total_tests: 1, passed: 1, failed: 0, pass_rate: 1, avg_score: 1, report_json: JSON.stringify({results: [{case_id: "legacy-case", passed: true, judge_results: []}]})})}));
+    const result = await fetchRun("42");
+    expect(result.data?.id).toBe("42");
+    expect(result.data?.cases[0].id).toBe("legacy-case");
+    expect(result.data?.provenance?.origin).toBe("unknown");
+    expect(result.data?.gate).toBeNull();
+  });
+  it("does not substitute sample cases for an offline connected run", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     const result = await fetchRun("demo-7");
-    expect(result.demo).toBe(true);
-    expect(result.data?.cases).toHaveLength(3);
-    expect(result.data?.cases[0].category).toBe("retrieval_regression");
+    expect(result.demo).toBe(false);
+    expect(result.data).toBeNull();
   });
 
-  it("includes all three scenario categories in demo data", () => {
+  it("preserves canonical synthetic corpus categories", () => {
     const categories = DEMO_CASES.map((c) => c.category);
-    expect(categories).toContain("retrieval_regression");
-    expect(categories).toContain("citation_failure");
-    expect(categories).toContain("correct_refusal");
+    expect(categories).toContain("answerable");
+    expect(categories).toContain("adversarial");
+    expect(categories).toContain("unanswerable");
   });
 });

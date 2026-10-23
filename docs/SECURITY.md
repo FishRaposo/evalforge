@@ -125,3 +125,15 @@ operational data.
 - [ ] `EVALFORGE_OPENAI_BASE_URL` points only at endpoints you trust
 - [ ] Evidence bundles are verified before review or publication, and custom
       backend metadata has been checked for sensitive values
+# Local connected-evaluation boundary (2026-10-23)
+
+See [connected setup and retention](portfolio-connected.md) for the current
+upload caps, safe-YAML restrictions, saved-only execution, explicit browser origins,
+loopback binding, single-service database lease, and manual cleanup. Origin checks
+are not authentication. Keep the service local and use public-safe inputs.
+
+The suite supplies trusted source snapshots and bounded answer contracts.
+Response-supplied passages cannot grant themselves authority. Strict evidence
+hashes and replay establish integrity and reproducibility, not human label
+validity, real-model quality or production security certification. Historical
+reports without provenance remain unknown.

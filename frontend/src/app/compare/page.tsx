@@ -1,141 +1,88 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSession } from "@/components/AppSession";
+import { CaseCard, GatePanel } from "@/components/Evidence";
 import { DemoBanner } from "@/components/DemoBanner";
-import { Nav } from "@/components/Nav";
-import { ScoreBar } from "@/components/ScoreBar";
-import { DEMO_MODE, fetchCompare } from "@/lib/api";
-import { demoCompare } from "@/lib/demoData";
-import type { CompareResult } from "@/lib/types";
-
-const DEFAULT_BASELINE = "demo-1";
-const DEFAULT_CURRENT = "demo-7";
-
-const INITIAL_COMPARE = DEMO_MODE
-  ? demoCompare(DEFAULT_BASELINE, DEFAULT_CURRENT)
-  : null;
-
-export default function ComparePage() {
-  const [runA, setRunA] = useState(DEFAULT_BASELINE);
-  const [runB, setRunB] = useState(DEFAULT_CURRENT);
-  const [result, setResult] = useState<CompareResult | null>(INITIAL_COMPARE);
-  const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(DEMO_MODE);
-  const [forced, setForced] = useState(DEMO_MODE);
-  const [demoDetail, setDemoDetail] = useState<string | null>(null);
-
-  async function handleCompare() {
-    if (!runA || !runB) return;
-    setLoading(true);
-    const res = await fetchCompare(runA, runB);
-    setResult(res.data);
-    setDemo(res.demo);
-    setForced(res.forced);
-    setDemoDetail(res.error);
-    setLoading(false);
-  }
-
-  return (
-    <>
-      <Nav />
-      <main className="max-w-3xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold mb-2">Compare Runs</h1>
-        <p className="text-sm text-slate-400 mb-6">
-          Baseline{" "}
-          <code className="rounded bg-slate-800 px-1">{DEFAULT_BASELINE}</code>{" "}
-          vs current{" "}
-          <code className="rounded bg-slate-800 px-1">{DEFAULT_CURRENT}</code>{" "}
-          — drift surfaced before ship.
-        </p>
-
-        {demo && <DemoBanner detail={demoDetail} forced={forced} />}
-
-        <div className="bg-slate-800 rounded-lg p-5 mb-6">
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <label
-                htmlFor="runA"
-                className="block text-sm text-slate-400 mb-1"
-              >
-                Baseline run
-              </label>
-              <input
-                id="runA"
-                type="text"
-                value={runA}
-                onChange={(e) => setRunA(e.target.value)}
-                placeholder={DEFAULT_BASELINE}
-                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
-              />
-            </div>
-            <div className="flex-1">
-              <label
-                htmlFor="runB"
-                className="block text-sm text-slate-400 mb-1"
-              >
-                Current run
-              </label>
-              <input
-                id="runB"
-                type="text"
-                value={runB}
-                onChange={(e) => setRunB(e.target.value)}
-                placeholder={DEFAULT_CURRENT}
-                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleCompare}
-            disabled={loading || !runA || !runB}
-            className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium"
-          >
-            {loading ? "Comparing..." : "Compare"}
-          </button>
-        </div>
-
-        {result && (
-          <div className="bg-slate-800 rounded-lg p-5">
-            <h2 className="text-lg font-semibold mb-1">Comparison Results</h2>
-            <p className="text-xs text-slate-500 mb-4">
-              {String(result.run_a_id)} → {String(result.run_b_id)}
-            </p>
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm text-slate-400 mb-1">
-                  Pass Rate Delta
-                </div>
-                <ScoreBar
-                  score={Math.max(
-                    0,
-                    Math.min(1, 0.5 + result.pass_rate_delta / 2)
-                  )}
-                />
-                <div className="text-sm mt-1 font-medium text-slate-300">
-                  {result.pass_rate_delta >= 0 ? "+" : ""}
-                  {(result.pass_rate_delta * 100).toFixed(1)}%
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-400 mb-1">
-                  Avg Score Delta
-                </div>
-                <ScoreBar
-                  score={Math.max(
-                    0,
-                    Math.min(1, 0.5 + result.avg_score_delta / 2)
-                  )}
-                />
-                <div className="text-sm mt-1 font-medium text-slate-300">
-                  {result.avg_score_delta >= 0 ? "+" : ""}
-                  {result.avg_score_delta.toFixed(3)}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </>
-  );
+import { ConnectionError } from "@/components/ConnectionError";
+import { fetchCompare, fetchDashboard, fetchRun } from "@/lib/api";
+import { DEMO_RUNS, getDemoRunDetail, demoCompare } from "@/lib/demoData";
+import { SCENARIO_IDS, type Scenario } from "@/lib/demo-scenarios";
+import type { CompareResult, EvalRun, RunDetail } from "@/lib/types";
+function Comparison() {
+    const { mode, sample, setSample } = useSession();
+    const initialCurrent = SCENARIO_IDS[sample.scenario];
+    const [runs, setRuns] = useState<EvalRun[]>(mode === "sample" ? DEMO_RUNS : []);
+    const [a, setA] = useState(mode === "sample" ? "demo-1" : "");
+    const [b, setB] = useState(mode === "sample" ? initialCurrent : "");
+    const [result, setResult] = useState<CompareResult | null>(mode === "sample" ? demoCompare("demo-1", initialCurrent) : null);
+    const [left, setLeft] = useState<RunDetail | null>(mode === "sample" ? getDemoRunDetail("demo-1") : null);
+    const [right, setRight] = useState<RunDetail | null>(mode === "sample" ? getDemoRunDetail(initialCurrent) : null);
+    const [selected, setSelected] = useState(sample.selectedCase);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [retry, setRetry] = useState(0);
+    const active = useRef<AbortController | null>(null);
+    useEffect(() => {
+        if (mode === "sample")
+            return;
+        const controller = new AbortController();
+        fetchDashboard(100, mode, controller.signal).then(value => {
+            if (!controller.signal.aborted) {
+                setRuns(value.data.runs);
+                setError(value.error);
+                setA(value.data.runs[1]?.id || value.data.runs[0]?.id || "");
+                setB(value.data.runs[0]?.id || "");
+            }
+        });
+        return () => controller.abort();
+    }, [mode, retry]);
+    useEffect(() => () => active.current?.abort(), []);
+    async function compare() {
+        active.current?.abort();
+        const controller = new AbortController();
+        active.current = controller;
+        setLoading(true);
+        setResult(null);
+        setLeft(null);
+        setRight(null);
+        setError(null);
+        const [comparison, baseline, candidate] = await Promise.all([fetchCompare(a, b, mode, controller.signal), fetchRun(a, mode, controller.signal), fetchRun(b, mode, controller.signal)]);
+        if (controller.signal.aborted)
+            return;
+        setError(comparison.error || baseline.error || candidate.error);
+        setResult(comparison.data);
+        setLeft(baseline.data);
+        setRight(candidate.data);
+        setSelected(baseline.data?.cases.find(c => candidate.data?.cases.find(x => x.id === c.id)?.outcome !== c.outcome)?.id || baseline.data?.cases[0]?.id || "");
+        setLoading(false);
+    }
+    function selectPair(nextA: string, nextB: string) {
+        active.current?.abort();
+        setLoading(false);
+        setA(nextA);
+        setB(nextB);
+        setError(null);
+        if (mode === "sample") {
+            setResult(demoCompare(nextA, nextB));
+            setLeft(getDemoRunDetail(nextA));
+            setRight(getDemoRunDetail(nextB));
+            const scenario = (Object.keys(SCENARIO_IDS) as Scenario[]).find(key => SCENARIO_IDS[key] === nextB);
+            if (scenario)
+                setSample(value => ({ ...value, scenario }));
+        }
+        else {
+            setResult(null);
+            setLeft(null);
+            setRight(null);
+        }
+    }
+    const ids = Array.from(new Set([...(left?.cases.map(c => c.id) || []), ...(right?.cases.map(c => c.id) || [])]));
+    const baselineCase = left?.cases.find(c => c.id === selected);
+    const candidateCase = right?.cases.find(c => c.id === selected);
+    return <>{mode === "sample" ? <DemoBanner /> : null}<header className="page-heading"><span className="eyebrow">CHANGE REVIEW / SAME CONTRACT</span><h1>Compare releases</h1><p>A score can move. The cases explain why.</p></header><section className="surface"><div className="form-grid"><label>Baseline run<select id="runA" value={a} onChange={e => selectPair(e.target.value, b)}><option value="">Select a saved run</option>{runs.map(r => <option key={r.id} value={r.id}>{r.id} · {r.suite_name}</option>)}</select></label><label>Current run<select id="runB" value={b} onChange={e => selectPair(a, e.target.value)}><option value="">Select a saved run</option>{runs.map(r => <option key={r.id} value={r.id}>{r.id} · {r.suite_name}</option>)}</select></label></div><button disabled={loading || !a || !b} onClick={compare}>{loading ? "Comparing…" : "Compare"}</button></section>{error ? <ConnectionError message={error} retry={() => {
+                setRetry(x => x + 1);
+                if (a && b)
+                    void compare();
+            }}/> : null}{result && !error ? <><section className="comparison-summary"><div><span className="eyebrow">COMPARISON RESULTS</span><h2>{result.comparable === false ? "Different contracts — comparison limited" : "Case changes, made visible"}</h2><p>{result.reason || "Legacy comparison: dataset compatibility was not recorded."}</p></div><div><strong>{result.pass_rate_delta >= 0 ? "+" : ""}{(result.pass_rate_delta * 100).toFixed(1)} pp</strong><span>Pass rate delta</span></div></section><div className="comparison-gates"><div><h3>Baseline · {left?.id}</h3><GatePanel gate={left?.gate}/></div><div><h3>Candidate · {right?.id}</h3><GatePanel gate={right?.gate}/></div></div><section className="surface"><label>Inspect changed case<select value={selected} onChange={e => setSelected(e.target.value)}>{ids.map(id => { const x = left?.cases.find(c => c.id === id); const y = right?.cases.find(c => c.id === id); return <option value={id} key={id}>{x?.outcome !== y?.outcome ? "CHANGED · " : ""}{x?.name || y?.name || id}{!x ? " · added" : !y ? " · removed" : ""}</option>; })}</select></label></section><div className="comparison-cases"><div><h2>Baseline answer & evidence</h2>{baselineCase ? <CaseCard case={baselineCase}/> : <p className="surface">Case absent from baseline.</p>}</div><div><h2>Candidate answer & evidence</h2>{candidateCase ? <CaseCard case={candidateCase}/> : <p className="surface">Case absent from candidate.</p>}</div></div><p className="provenance">Dataset: {left?.provenance?.dataset_revision || "unknown"} → {right?.provenance?.dataset_revision || "unknown"}. Origins: {left?.provenance?.origin || "unknown"} / {right?.provenance?.origin || "unknown"}. Inspect judge methods in each card.</p></> : null}</>;
 }
+export default function ComparePage() { const { mode, ready, epoch } = useSession(); return <main tabIndex={-1} id="main" className="page-shell">{ready ? <Comparison key={`${mode}-${epoch}`}/> : <p role="status">Loading workspace…</p>}</main>; }

@@ -28,6 +28,7 @@ class SemanticMatchJudge(BaseJudge):
         )
         self._cache: dict[str, list[float]] = {}
         self._client: Any = None
+        self._last_method = "unknown"
 
     def judge(self, test_case: TestCase, response: str) -> JudgeResult:
         expected = str(test_case.expected) if test_case.expected is not None else ""
@@ -45,10 +46,16 @@ class SemanticMatchJudge(BaseJudge):
                 "similarity": similarity,
                 "threshold": threshold,
                 "match_type": "semantic",
+                "assessment": {
+                    "method": self._last_method,
+                    "version": "1",
+                    "quality_validated": False,
+                },
             },
         )
 
     def _compute_similarity(self, text_a: str, text_b: str) -> float:
+        self._last_method = "empty_input_contract"
         if not text_a and not text_b:
             return 1.0
         if not text_a or not text_b:
@@ -56,12 +63,15 @@ class SemanticMatchJudge(BaseJudge):
 
         embedding_sim = self._embedding_similarity(text_a, text_b)
         if embedding_sim is not None:
+            self._last_method = "embedding_cosine"
             return round(embedding_sim, 4)
 
         tfidf_sim = self._tfidf_cosine_similarity(text_a, text_b)
         if tfidf_sim is not None:
+            self._last_method = "lexical_tfidf_cosine"
             return round(tfidf_sim, 4)
 
+        self._last_method = "lexical_jaccard"
         return round(self._jaccard_similarity(text_a, text_b), 4)
 
     def _embedding_similarity(self, text_a: str, text_b: str) -> float | None:

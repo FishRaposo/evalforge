@@ -34,7 +34,14 @@ class CitationCheckJudge(BaseJudge):
             return JudgeResult(
                 passed=True,
                 score=1.0,
-                details={"message": "No sources required"},
+                details={
+                    "message": "No sources required",
+                    "assessment": {
+                        "method": "source_mentions_only",
+                        "version": "1",
+                        "quality_validated": False,
+                    },
+                },
             )
 
         found_citations = self._extract_citations(response)
@@ -59,6 +66,11 @@ class CitationCheckJudge(BaseJudge):
                 "found_citations": found_citations,
                 "total_expected": len(expected_sources),
                 "total_matched": len(matched),
+                "assessment": {
+                    "method": "source_mentions_only",
+                    "version": "1",
+                    "quality_validated": False,
+                },
             },
         )
 
