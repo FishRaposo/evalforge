@@ -24,7 +24,7 @@ evalforge/
 │   ├── scheduler/  notifications/  workspaces/  ci/
 │   ├── storage/history.py        #   SQLite history store (offline-first)
 │   └── server/app.py             #   FastAPI history API (vendored middleware + handler)
-├── frontend/                     # Next.js dashboard — KEPT as-is
+├── frontend/                     # Next.js static sample + connected production dashboard
 ├── example_suites/  rule_packs/  data/  reports/  tests/  scripts/  docs/
 │   └── data/migrations/2026-08-12-.../ # versioned port fixtures + provenance manifest
 ├── examples/run_demo.py          # offline mock-backend evaluation demo
@@ -88,6 +88,33 @@ The heavy `hf` extra (datasets/transformers/torch) is optional — the HF loader
 offline synthetic fallback, so the suite runs without it.
 
 ## Current State
+
+Project03 adds saved-response evaluation through `evalforge/evaluation.py`,
+`backends/saved.py`, `runners/saved_runner.py` and the structured
+`judges/evidence_support.py` contract. CLI `--backend saved --response-file ...
+--strict-evidence` and dashboard jobs use the same service. Schema-v3 evidence
+copies input artifacts and replays the assessment; preserve all v1/v2 golden
+fixtures. `scripts/check_strict_evidence.py` verifies literal0/1/0/2 exits and
+authored-expectation agreement across the frozen synthetic corpus. Do not call
+this human calibration or measured model quality.
+
+The secondary local API now imports profiles and launches one saved evaluation
+at a time. Additive SQLite jobs/profiles, atomic report completion, request UUID
+deduplication and an OS service lease guard execution/restart. Only one API may
+own a database. Uploaded files persist until manual cleanup. See
+[connected architecture/setup](docs/portfolio-connected.md) before changing
+these boundaries. No provider/plugin/shell execution on the web path.
+
+Frontend provider choice persists per tab, but sample scenarios reset on reload.
+Never silently substitute sample data after a connected failure. Default build
+is a static preview; `build:connected`/`start:connected` supports runtime numeric
+run URLs. Run sample and live Playwright configurations separately, and never
+build concurrently with browser verification. The live suite owns disposable
+SQLite/API processes; do not reuse personal databases or sibling project ports.
+
+Read [latest handoff](docs/portfolio-handoff.md) and
+[fresh verification](docs/portfolio-verification.md) for the actual results and
+limits. `make strict-evidence` and `make test-connected` are additive recipes.
 
 **Functional and self-contained.** Config extends the vendored `BaseAppConfig` with
 the `EVALFORGE_` prefix preserved; the history API uses the vendored middleware and

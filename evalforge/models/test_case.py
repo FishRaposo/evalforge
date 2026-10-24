@@ -23,6 +23,7 @@ class TestCaseType(str, Enum):
     MUST_RETRIEVE = "must_retrieve"
     FORBIDDEN_CONTENT = "forbidden_content"
     STRUCTURED_OUTPUT = "structured_output"
+    EVIDENCE_SUPPORT = "evidence_support"
 
 
 class TestCase(BaseModel):

@@ -2,14 +2,30 @@
 
 [![CI](https://github.com/FishRaposo/evalforge/actions/workflows/ci.yml/badge.svg)](https://github.com/FishRaposo/evalforge/actions/workflows/ci.yml) [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]() [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Offline-first regression testing for RAG and agentic AI, with inspectable evidence.**
+**Catch the AI answers that look right and cite the wrong evidence.**
+
+EvalForge is a CLI-first evaluator with a connected local dashboard and an offline
+recruiter demo. Inspect the answer, the trusted passage and the exact check behind
+a release decision. The strict gate evaluates bounded source-backed contracts;
+free-form support that it cannot establish stays **indeterminate**.
+
+- [Explore the six-case demo](docs/portfolio-walkthrough.md): baseline → wrong source → repair → judge-error recovery. Persistent sample labels; no API or provider required.
+- [Run the actual application](docs/portfolio-connected.md): import YAML/JSONL, explicitly launch an evaluation, inspect durable reports and compare aligned cases.
+- [Engineering case study](docs/portfolio-case-study.md) · [Verification and screenshots](docs/portfolio-verification.md) · [Agent handoff](docs/portfolio-handoff.md).
+
+The bundled 100-case corpus is synthetic, source-backed and agent-authored. Actual
+CLI/API execution is verified separately from the inputs' validity. No independent
+human review or real-model quality measurement is claimed.
 
 EvalForge is self-contained. A narrowly scoped config/server subset from the archived
 `FishRaposo/operator-shared-core` v1.3.0 is vendored under `evalforge/shared_core/`; the
 local compatibility layer owns evaluation, provider, ingestion, and repository contracts.
 Attribution and the pinned source commit are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Define test suites in YAML, evaluate retrieval correctness, citation quality, and refusal behavior — then catch quality drift before it reaches production.
+Define test suites in YAML and inspect retrieval, citation and refusal checks.
+Legacy citation checking tests mentions; it does not establish factual support.
+Opt into structured saved-response contracts for source identity, version,
+passage integrity, whole-answer expectations and explicit0/1/2 release exits.
 
 [Quick Demo](#quick-demo) • [Architecture](#architecture) • [CLI Guide](#local-quickstart) • [Evidence bundles](docs/EVIDENCE.md)
 
@@ -29,11 +45,14 @@ Runs a sample evaluation suite with mock backend and generates a markdown report
 
 EvalForge is a practical regression-testing harness for RAG and agentic AI systems. It provides a structured, repeatable way to evaluate whether your AI systems behave as expected — across retrieval correctness, citation quality, refusal behavior, and regression drift.
 
-**I do not just ship AI systems. I measure whether they work.**
+**A passing score needs a declared method and inspectable evidence.**
 
 ## What problem it solves
 
-AI systems degrade silently. A model update, a prompt tweak, or a changed retrieval index can cause outputs to drift without anyone noticing. Traditional unit tests don't work for probabilistic systems — you need evaluation harnesses that understand similarity, citation, and refusal semantics.
+Model updates, prompt changes and retrieval changes can alter application outputs.
+Versioned evaluation cases complement unit tests by making those differences
+inspectable. Similarity, mentions and deterministic evidence contracts are
+different methods with different limits; EvalForge records that distinction.
 
 EvalForge gives you:
 
@@ -102,9 +121,11 @@ evalforge eval example_suites/rag_basic.yaml --backend openai --format json --ou
 make evidence
 ```
 
-### Verified locally (offline, mock backend)
+### Original expansion baseline (historical; refreshed2026-10-23)
 
-These numbers come from `pip install -e ".[dev,server,llm]"` on Python 3.11+ with no API keys:
+The248-test baseline was reproduced on Python 3.12 before this milestone. Current
+integrated results and limits are in [portfolio verification](docs/portfolio-verification.md).
+The table below preserves the original expansion results; it is not the new total.
 
 | Check | Command | Result |
 |-------|---------|--------|

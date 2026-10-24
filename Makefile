@@ -26,6 +26,12 @@ demo: ## Run the offline mock-backend evaluation demo
 evidence: ## Build and verify the canonical offline portfolio evidence bundle
 	$(PYTHON) scripts/check_portfolio_evidence.py
 
+strict-evidence: ## Verify actual saved-response CLI exits and schema-v3 evidence
+	$(PYTHON) scripts/check_strict_evidence.py
+
+test-connected: ## Build production dashboard and verify against a disposable real API
+	cd frontend && npx playwright test --config=playwright.live.config.ts
+
 serve: ## Start the EvalForge history API
 	evalforge serve
 

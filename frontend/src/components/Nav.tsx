@@ -1,21 +1,5 @@
 "use client";
-
 import Link from "next/link";
-
-export function Nav() {
-  return (
-    <nav className="bg-slate-800 border-b border-slate-700">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-6">
-        <Link href="/" className="font-bold text-lg text-sky-400 hover:text-sky-300">
-          EvalForge
-        </Link>
-        <Link href="/" className="text-sm text-slate-300 hover:text-white">
-          Dashboard
-        </Link>
-        <Link href="/compare" className="text-sm text-slate-300 hover:text-white">
-          Compare
-        </Link>
-      </div>
-    </nav>
-  );
-}
+import { usePathname } from "next/navigation";
+import { useSession } from "./AppSession";
+export function Nav() { const { mode, setMode, reset } = useSession(); const pathname = usePathname(); return <><a className="skip-link" href="#main">Skip to content</a><nav className="site-nav" aria-label="Main navigation"><div className="nav-inner"><Link className="brand" href="/"><span className="brand-symbol">E<span>F</span></span>EvalForge<span className="brand-caption">EVIDENCE FIRST</span></Link><div className="nav-links">{[["/", "Overview"], ["/compare", "Compare"], ["/evaluate", "Evaluate"]].map(([href, label]) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}>{label}</Link>)}</div><div className="mode-tools"><label className="sr-only" htmlFor="data-mode">Data source</label><select id="data-mode" value={mode} onChange={e => setMode(e.target.value as "sample" | "connected")}><option value="sample">Sample mode</option><option value="connected">Connected API</option></select>{mode === "sample" ? <button className="quiet-button" onClick={reset}>Reset demo</button> : null}</div></div></nav></>; }

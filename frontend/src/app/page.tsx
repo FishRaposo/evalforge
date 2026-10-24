@@ -1,221 +1,41 @@
 "use client";
-
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/Card";
-import { ComplianceList } from "@/components/ComplianceList";
 import { DemoBanner } from "@/components/DemoBanner";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Nav } from "@/components/Nav";
 import { RunTable } from "@/components/RunTable";
+import { ConnectionError } from "@/components/ConnectionError";
+import { CaseCard, EvidenceSummary, GatePanel } from "@/components/Evidence";
+import { useSession } from "@/components/AppSession";
 import { fetchDashboard } from "@/lib/api";
-import type { ComplianceItem, EvalRun } from "@/lib/types";
-
-export default function DashboardPage() {
-  const [runs, setRuns] = useState<EvalRun[]>([]);
-  const [compliance, setCompliance] = useState<ComplianceItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(false);
-  const [demoForced, setDemoForced] = useState(false);
-  const [demoDetail, setDemoDetail] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      const result = await fetchDashboard(20);
-      if (!active) return;
-      setRuns(result.data.runs);
-      setCompliance(result.data.compliance);
-      setDemo(result.demo);
-      setDemoForced(result.forced);
-      setDemoDetail(result.error);
-      setLoading(false);
-    }
-    load();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const totalTests = runs.reduce((s, r) => s + (r.total_tests || 0), 0);
-  const totalPassed = runs.reduce((s, r) => s + (r.passed || 0), 0);
-  const passRate =
-    totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
-  const avgScore =
-    runs.length > 0
-      ? runs.reduce((s, r) => s + (r.avg_score || 0), 0) / runs.length
-      : 0;
-  const latestCompliance = compliance[0];
-
-  // SVG Chart Calculation for Score Trends
-  const trendPoints = runs
-    .slice(0, 10)
-    .reverse()
-    .map((r) => r.avg_score * 100);
-  const chartHeight = 60;
-  const chartWidth = 480;
-  const maxScore = 100;
-  const pointsStr = trendPoints
-    .map((score, idx) => {
-      const x = (idx / Math.max(trendPoints.length - 1, 1)) * chartWidth;
-      const y = chartHeight - (score / maxScore) * chartHeight * 0.8 - 4;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  const isEmpty = !loading && runs.length === 0;
-
-  return (
-    <>
-      <Nav />
-      <main className="max-w-6xl mx-auto px-6 py-10 text-slate-100 font-sans">
-        {/* Glow Header Block */}
-        <header className="relative mb-10 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-xl backdrop-blur-md">
-          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl" />
-          <div className="absolute left-1/3 bottom-0 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="relative">
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-              EvalForge Dashboard
-            </h1>
-            <p className="text-slate-400 mt-2 text-sm max-w-xl">
-              Execute multi-agent benchmark suites, run regression detectors, and
-              verify rule-pack compliance matrices.
-            </p>
-          </div>
-        </header>
-
-        {demo && <DemoBanner detail={demoDetail} forced={demoForced} />}
-
-        {loading && (
-          <div
-            data-testid="dashboard-loading"
-            className="flex items-center justify-center py-20"
-          >
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-            <span className="ml-3 text-slate-400 text-sm">
-              Parsing evaluation archives...
-            </span>
-          </div>
-        )}
-
-        {isEmpty && (
-          <div
-            data-testid="dashboard-empty"
-            className="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center text-slate-400"
-          >
-            <p className="text-lg font-semibold text-slate-300">No runs yet</p>
-            <p className="mt-2 text-sm">
-              Run an evaluation with{" "}
-              <code className="rounded bg-slate-800 px-1 py-0.5">
-                evalforge eval &lt;suite.yaml&gt;
-              </code>{" "}
-              to populate this dashboard.
-            </p>
-          </div>
-        )}
-
-        {!loading && !isEmpty && (
-          <ErrorBoundary>
-            {/* Quick Metrics */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-              <Card
-                title="EVAL RUNS"
-                value={String(runs.length)}
-                subtitle="recent runs"
-              />
-              <Card
-                title="CUMULATIVE PASS RATE"
-                value={`${passRate}%`}
-                subtitle={`${totalPassed}/${totalTests} tests`}
-                color={
-                  passRate >= 90
-                    ? "text-emerald-400"
-                    : passRate >= 70
-                      ? "text-amber-400"
-                      : "text-rose-400"
-                }
-              />
-              <Card
-                title="AVG SCORE"
-                value={avgScore.toFixed(2)}
-                subtitle="across all benchmarks"
-                color="text-indigo-400"
-              />
-              <Card
-                title="LATEST COMPLIANCE"
-                value={
-                  latestCompliance
-                    ? `${(latestCompliance.score * 100).toFixed(0)}%`
-                    : "N/A"
-                }
-                subtitle={`${latestCompliance?.failed_rules ?? 0} active failures`}
-                color={
-                  latestCompliance && latestCompliance.score >= 0.9
-                    ? "text-emerald-400"
-                    : "text-rose-400"
-                }
-              />
-            </section>
-
-            {/* Visual Telemetry Trends */}
-            <section className="mb-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-base font-bold text-slate-200">
-                    Evaluation Score Trends
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Benchmark score trajectory across the last 10 runs
-                  </p>
-                </div>
-                <span className="text-xs font-semibold text-emerald-400">
-                  Target: 90.00+
-                </span>
-              </div>
-              <div className="h-16 flex items-end">
-                {trendPoints.length === 0 ? (
-                  <div className="w-full text-center text-xs text-slate-600">
-                    Insufficient historical data
-                  </div>
-                ) : (
-                  <svg
-                    width="100%"
-                    height={chartHeight}
-                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                    preserveAspectRatio="none"
-                    className="overflow-visible"
-                  >
-                    <polyline
-                      fill="none"
-                      stroke="#818cf8"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      points={pointsStr}
-                      className="drop-shadow-[0_4px_6px_rgba(129,140,248,0.4)]"
-                    />
-                  </svg>
-                )}
-              </div>
-            </section>
-
-            {/* Split Details Section */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-6 shadow-md hover:border-slate-700/60 transition-colors">
-                <h2 className="text-base font-bold bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
-                  Recent Evaluation Runs
-                </h2>
-                <RunTable runs={runs} />
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-6 shadow-md hover:border-slate-700/60 transition-colors">
-                <h2 className="text-base font-bold bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
-                  Compliance Rule Matrix
-                </h2>
-                <ComplianceList items={compliance} />
-              </div>
-            </section>
-          </ErrorBoundary>
-        )}
-      </main>
-    </>
-  );
+import { scenarioRun, type Scenario } from "@/lib/demo-scenarios";
+import type { EvalRun } from "@/lib/types";
+const TOUR = ["Inspect a supported answer", "Introduce a wrong source", "Understand the failed check", "Compare the repair", "Handle a judge error", "Inspect the reproducible workflow"];
+function SampleOverview() {
+    const { sample, setSample } = useSession();
+    const run = scenarioRun(sample.scenario);
+    const selected = run.cases.find(c => c.id === sample.selectedCase) || run.cases[0];
+    function choose(scenario: Scenario) { setSample(x => ({ ...x, scenario })); }
+    function step(next: number) { const scenario: Scenario = next === 0 ? "baseline" : next < 3 ? "candidate" : next === 3 ? "repaired" : next === 4 ? "error" : "repaired"; const selectedCase = next === 0 ? run.cases[0].id : next === 4 ? run.cases[5].id : run.cases[1].id; setSample({ scenario, selectedCase, guided: true, step: next }); }
+    return <><DemoBanner /><section className="journey-panel"><div className="journey-heading"><div><span className="eyebrow">A REGRESSION YOU CAN INSPECT</span><h2>Same question. Different evidence.</h2><p>The answer can look convincing while its citation points to the wrong source.</p></div><button onClick={() => step(0)}>Start guided demo <span aria-hidden>→</span></button></div>{sample.guided ? <div className="tour" aria-live="polite"><span>STEP {sample.step + 1} / 6</span><strong>{TOUR[sample.step]}</strong><p>{sample.step === 0 ? "The trusted passage and cited source agree. Select any case below to inspect the contract." : sample.step === 1 ? "The answer still sounds right, but the source identity changed. The gate blocks the candidate." : sample.step === 2 ? "Read the supplied citation beside the authoritative source. A mention alone cannot establish support." : sample.step === 3 ? "The repaired snapshot restores the exact source and facts. This six-case synthetic contract passes." : sample.step === 4 ? "This is labeled fault injection: a malformed judge output prevents a release decision." : "The CLI evaluates saved responses using the same strict gate. Inspect the report below."}</p><div className="actions">{sample.step > 0 ? <button className="secondary" onClick={() => step(sample.step - 1)}>Previous step</button> : null}{sample.step < 5 ? <button onClick={() => step(sample.step + 1)}>{sample.step === 0 ? "Introduce wrong source" : sample.step === 1 ? "Why did it fail?" : sample.step === 2 ? "Compare repaired candidate" : sample.step === 3 ? "Open judge-error case" : "Retry fixture"}</button> : <button className="secondary" onClick={() => setSample(x => ({ ...x, guided: false }))}>Explore freely</button>}</div></div> : null}<div className="scenario-controls" aria-label="Saved sample snapshot">{(["baseline", "candidate", "repaired", "error"] as Scenario[]).map(s => <button key={s} aria-pressed={sample.scenario === s} className="scenario-button" onClick={() => choose(s)}>{s === "error" ? "Judge error (injected)" : s.charAt(0).toUpperCase() + s.slice(1)}</button>)}</div></section><GatePanel gate={run.gate}/><section className="case-workspace"><aside className="case-browser" aria-label="Sample test cases"><div className="section-heading"><h2>Six cases</h2><span>VERSIONED SUBSET</span></div>{run.cases.map(c => <button key={c.id} onClick={() => setSample(x => ({ ...x, selectedCase: c.id }))} aria-pressed={c.id === selected.id} className="case-select"><span className={`case-dot ${c.outcome}`}/><span>{c.name}<small>{c.outcome}</small></span><span aria-hidden>↗</span></button>)}</aside><CaseCard case={selected}/></section>{sample.scenario === "error" ? <div className="recovery-panel"><h3>Judge fault is a stop signal</h3><p>Injected sample failure. Retrying selects the deterministic repaired snapshot; it does not call a model.</p><button onClick={() => setSample(x => ({ ...x, scenario: "repaired" }))}>Retry fixture</button></div> : null}<EvidenceSummary run={run}/></>;
 }
+function ConnectedOverview() {
+    const [runs, setRuns] = useState<EvalRun[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [retry, setRetry] = useState(0);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchDashboard(20, "connected", controller.signal).then(result => {
+            if (!controller.signal.aborted) {
+                setRuns(result.data.runs);
+                setError(result.error);
+                setLoading(false);
+            }
+        });
+        return () => controller.abort();
+    }, [retry]);
+    return <><div className="connected-note"><span className="eyebrow">CONNECTED HISTORY</span><p>Actual saved reports from your local API. Origin and strict-gate status are preserved per report.</p><Link href="/evaluate" className="button">Run an evaluation →</Link></div>{error ? <ConnectionError message={error} retry={() => { setLoading(true); setRetry(x => x + 1); }}/> : loading ? <p role="status">Loading saved reports…</p> : runs.length ? <><div className="metrics"><Card title="SAVED RUNS" value={String(runs.length)} subtitle="observed API history"/><Card title="LATEST CASES" value={String(runs[0].total_tests)} subtitle="open the report for evidence"/></div><GatePanel gate={runs[0].gate}/><section className="surface"><h2>Recent Evaluation Runs</h2><div className="table-scroll"><RunTable runs={runs}/></div></section></> : <section className="surface" data-testid="dashboard-empty"><h2>No runs yet</h2><p>Choose a preset or validate an uploaded suite and saved responses to run the actual local evaluator.</p><Link className="button" href="/evaluate">Open evaluation launcher</Link></section>}</>;
+}
+export default function DashboardPage() { const { mode, ready, epoch, sample, setSample } = useSession(); return <main tabIndex={-1} id="main" className="page-shell"><header className="hero"><div className="hero-copy"><span className="eyebrow">EVALFORGE / RELEASE CONFIDENCE, WITH RECEIPTS</span><h1>Catch the AI answers that look right and cite the wrong evidence.</h1><p>Look past the score. Inspect the answer, the source, and the exact check that stopped a regression.</p><div className="hero-links"><Link href="/compare" onClick={() => { if (mode === "sample" && sample.scenario === "baseline")
+    setSample(value => ({ ...value, scenario: "candidate", selectedCase: "ef-answerable-002" })); }}>Compare releases <span>↗</span></Link><Link href={mode === "sample" ? "/runs/demo-7" : "/evaluate"}>{mode === "sample" ? "Explore failed cases" : "Run & inspect cases"} <span>↗</span></Link><a href="#workflow">CLI workflow <span>↓</span></a></div></div><div className="hero-proof" aria-hidden="true"><span className="proof-label">ILLUSTRATION / EVIDENCE CHECK</span><div className="proof-answer">“The answer sounds right.”<span>Source identity mismatch</span></div><div className="proof-rule"/><div className="proof-decision"><span>×</span><div>Release blocked<small>Show the evidence. Fix the source.</small></div></div></div></header>{ready ? (mode === "sample" ? <SampleOverview key={`sample-${epoch}`}/> : <ConnectedOverview key={`connected-${epoch}`}/>) : <p role="status">Loading workspace…</p>}<footer id="workflow" className="page-footer"><span>CLI FIRST. EVIDENCE ALWAYS.</span><p>Local evaluation · SQLite history · inspectable reports</p><a href="https://github.com/FishRaposo/evalforge" target="_blank" rel="noreferrer">Source & setup ↗</a></footer></main>; }

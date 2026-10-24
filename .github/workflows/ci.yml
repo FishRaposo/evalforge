@@ -77,6 +77,14 @@ jobs:
         run: |
           python -c "import evalforge.config, evalforge.server.app, evalforge.shared_core.config"
           ! rg -n "\.\./shared-core|git\+https://.*operator-shared-core|^\s*(from|import) shared_core" evalforge Makefile .github docs README.md
+      - name: Fresh server wheel outside checkout
+        run: |
+          python -m venv "$RUNNER_TEMP/evalforge-wheel"
+          WHEEL=$(echo wheelhouse/evalforge-*-py3-none-any.whl)
+          "$RUNNER_TEMP/evalforge-wheel/bin/python" -m pip install "${WHEEL}[server]"
+          "$RUNNER_TEMP/evalforge-wheel/bin/python" -m pip check
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/evalforge-wheel/bin/python" -I "$GITHUB_WORKSPACE/scripts/verify_installed_portfolio.py"
 
   evaluate-mock:
     name: Run Evaluations (Mock Backend)
@@ -122,16 +130,21 @@ jobs:
           pip install -e ".[dev,server]"
       - name: Build and verify golden evidence
         run: python scripts/check_portfolio_evidence.py --output-dir ./evidence-artifact
+      - name: Verify saved-response strict gates and schema-v3 evidence
+        run: python scripts/check_strict_evidence.py --output-dir ./strict-evidence-artifact
       - name: Upload evidence bundle
         uses: actions/upload-artifact@v7
         with:
           name: evalforge-portfolio-evidence
-          path: evidence-artifact/
+          path: |
+            evidence-artifact/
+            strict-evidence-artifact/
           retention-days: 30
 
   frontend:
     name: Dashboard (tests, build, e2e)
-    runs-on: ubuntu-latest
+    # Playwright system deps lag the ubuntu-latest migration (ubuntu26.04).
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -154,3 +167,37 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run dashboard smoke tests
         run: npm run test:e2e
+
+  connected:
+    name: Real CLI, API and production dashboard
+    # Playwright system deps lag the ubuntu-latest migration (ubuntu26.04).
+    runs-on: ubuntu-24.04
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22.12.0"
+      - run: python -m pip install -e ".[dev,server]"
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Real-process connected verification
+        run: npx playwright test --config=playwright.live.config.ts
+        working-directory: frontend
+        env:
+          EVALFORGE_TEST_PYTHON: python
+          OPENAI_API_KEY: ""
+          EVALFORGE_OPENAI_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evalforge-connected-browser
+          path: |
+            frontend/playwright-live-report/
+            frontend/test-results/

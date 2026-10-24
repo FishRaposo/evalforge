@@ -33,7 +33,7 @@ verifier. CI executes this path and uploads the verified directory as an artifac
 
 | File | Purpose |
 | --- | --- |
-| `manifest.json` | Schema version (`2`; verification also accepts `1`), suite/report/result hashes, reproducibility hash, EvalForge version, Git SHA when available, backend/mode/model, sanitized configuration, seed, optional baseline/drift/calibration/trace/provider/compatibility data, timestamps, and the final decision. |
+| `manifest.json` | Schema version (`2` for the original path, `3` for saved-evaluation evidence; verification accepts `1`/`2`/`3`), suite/report/result hashes, reproducibility hash, EvalForge version, Git SHA when available, backend/mode/model, sanitized configuration, seed, optional baseline/drift/calibration/trace/provider/compatibility data, timestamps, and the final decision. |
 | `report.json` | The canonical EvalForge `Report`, including existing summary/per-test fields, provider metadata, calibration details, and optional `AgentTrace` values. |
 | `report.md` | A human-readable rendering of the same report for code review and portfolio walkthroughs. |
 | `drift.json` | Optional baseline comparison with aggregate deltas, deterministic per-test score deltas, added/removed IDs, and pass/fail transitions. |
@@ -86,3 +86,22 @@ hashes. Schema-v1 bundles remain verifiable for backward compatibility.
 The SHA-256 envelope is an integrity and review aid, not a cryptographic signature
 or hosted artifact service. Signing, hosted scheduling, and hosted/team workflows
 remain outside the offline portfolio slice.
+# Saved-response evidence v3
+
+Project03 adds `scripts/check_strict_evidence.py`. It runs the public CLI on four
+packaged synthetic profiles and verifies actual exits0/1/0/2, reconciled counts,
+copied input hashes and replayed results. The original golden remains
+`b707e5b1e130bba88d7f898178824756403954c57f5679131a3993607b8dd039`.
+
+Schema3 includes `suite.yaml` and `responses.jsonl`, their `source_artifacts`
+hashes, provenance, explicit strict_evidence mode and gate metadata. Verification
+replays the saved evaluation in its recorded assessment mode and compares results.
+A non-strict legacy assessment cannot claim a strict passing gate; its compatibility
+CLI exit remains separate. Saved CLI baseline comparisons require known matching
+dataset revisions and suite contracts before generating regression evidence.
+
+The suite's canonical snapshots establish the declared contract authority.
+File checksums/replay are reproducibility evidence, not signatures, independent
+source authority, human label review or model-quality validation. See
+[the trust boundary and setup](portfolio-connected.md) and
+[fresh results](portfolio-verification.md).

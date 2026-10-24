@@ -157,3 +157,10 @@ Webhook notifiers for Slack and Discord. No-op when no webhook URL is configured
 - **Custom reporters**: Subclass `BaseReporter`, implement `generate()` method.
 - **Test types**: Add to `TestCaseType` enum, create corresponding judge, register in the judge registry.
 - **Plugins**: Drop a Python file with a `judge(test_case, response)` function into a directory and use `evalforge plugins list/validate`.
+# Project03 connected architecture
+
+The original architecture above is retained for historical context. The current
+saved-response trust boundary, local jobs, additive SQLite state, packaged corpus,
+dual frontend builds and failure semantics are documented in
+[portfolio-connected.md](portfolio-connected.md). CLI and dashboard share the
+evaluation service; uploaded records never establish source authority.

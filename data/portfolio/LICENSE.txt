@@ -1,0 +1,1 @@
+CC0 1.0 Universal: all fictional policy text, saved responses and labels in this directory were authored by the coding agent for this project on 2026-10-23 and dedicated to the public domain. No third-party text, real client data or human expert review is claimed. Software remains under the repository MIT license.

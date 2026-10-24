@@ -17,7 +17,12 @@ from evalforge.models.report import Report
 from evalforge.models.trace import AgentTrace
 
 EVIDENCE_SCHEMA_VERSION = 2
-SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = {1, EVIDENCE_SCHEMA_VERSION}
+STRICT_EVIDENCE_SCHEMA_VERSION = 3
+SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = {
+    1,
+    EVIDENCE_SCHEMA_VERSION,
+    STRICT_EVIDENCE_SCHEMA_VERSION,
+}
 _SECRET_PARTS = {
     "authorization",
     "cookie",
@@ -73,6 +78,9 @@ class EvidenceManifest(BaseModel):
     agent_trace_schema_version: int | None = None
     compatibility_layer: str | None = None
     provider_metadata: dict[str, Any] | None = None
+    source_artifacts: dict[str, str] | None = None
+    gate: dict[str, Any] | None = None
+    provenance: dict[str, Any] | None = None
 
 
 def _key_parts(key: str) -> set[str]:
@@ -151,6 +159,14 @@ def sha256_file(path: Path) -> str:
 def canonical_report_payload(report: Report) -> dict[str, Any]:
     """Return report data with runtime-only noise removed."""
     payload = report.model_dump(mode="json")
+    if "gate" not in report.metadata:
+        # V1/v2 hashes predate advisory method/origin disclosure. Keep the
+        # historical score payload unchanged; byte checksums cover the full
+        # newly serialized report, including these additive disclosures.
+        payload.get("metadata", {}).pop("assessment", None)
+        for result in payload.get("results", []):
+            result.get("judge_details", {}).pop("assessment", None)
+            result.get("backend_metadata", {}).pop("assessment", None)
     canonical = _canonicalize(payload, strip_runtime=True)
     _strip_runtime_trace_fields(canonical)
     return canonical
@@ -216,9 +232,14 @@ def _render_markdown(report: Report) -> str:
         "|----|------|--------|-------|-----------|",
     ]
     for result in report.results:
+        status = (
+            result.outcome.upper()
+            if result.outcome
+            else ("PASS" if result.passed else "FAIL")
+        )
         lines.append(
             f"| {result.test_case_id} | {result.test_case_name} | "
-            f"{'PASS' if result.passed else 'FAIL'} | {result.score:.2f} | "
+            f"{status} | {result.score:.2f} | "
             f"{result.execution_time_ms:.0f} |"
         )
     return "\n".join(lines) + "\n"
@@ -248,9 +269,24 @@ def build_evidence_bundle(
     trace: Mapping[str, Any] | None = None,
     compatibility_layer: str | None = None,
     provider_metadata: Mapping[str, Any] | None = None,
+    source_artifacts: Mapping[str, Path] | None = None,
 ) -> EvidenceManifest:
     """Write a canonical evidence bundle and return its manifest."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    strict_bundle = isinstance(report.metadata.get("gate"), dict)
+    if strict_bundle and (
+        not source_artifacts
+        or set(source_artifacts) != {"suite.yaml", "responses.jsonl"}
+    ):
+        raise ValueError(
+            "Strict evidence requires exactly suite.yaml and responses.jsonl "
+            "source artifacts"
+        )
+    artifact_hashes: dict[str, str] = {}
+    for name, source in (source_artifacts or {}).items():
+        destination = _safe_file_path(output_dir, name)
+        destination.write_bytes(Path(source).read_bytes())
+        artifact_hashes[name] = sha256_file(destination)
     for filename in (
         "manifest.json",
         "report.json",
@@ -301,6 +337,7 @@ def build_evidence_bundle(
         )
         if (output_dir / name).exists()
     }
+    payload_files.update(artifact_hashes)
     report_failed = report.summary.failed > 0
     decision: Literal["passed", "failed", "regression"] = (
         "regression"
@@ -310,6 +347,9 @@ def build_evidence_bundle(
         else "passed"
     )
     manifest = EvidenceManifest(
+        schema_version=STRICT_EVIDENCE_SCHEMA_VERSION
+        if strict_bundle
+        else EVIDENCE_SCHEMA_VERSION,
         suite_name=report.suite_name,
         suite_hash=sha256_file(suite_path),
         report_hash=payload_files["report.json"],
@@ -334,6 +374,9 @@ def build_evidence_bundle(
         provider_metadata=redact_secrets(dict(provider_metadata))
         if provider_metadata
         else None,
+        source_artifacts=artifact_hashes or None,
+        gate=report.metadata.get("gate") if strict_bundle else None,
+        provenance=report.metadata.get("provenance") if strict_bundle else None,
     )
     (output_dir / "manifest.json").write_text(
         manifest.model_dump_json(indent=2), encoding="utf-8"
@@ -513,4 +556,54 @@ def verify_evidence_bundle(directory: Path) -> EvidenceManifest:  # noqa: C901
         raise EvidenceVerificationError(
             "Reproducibility hash does not match manifest.json"
         )
+    if manifest.schema_version == STRICT_EVIDENCE_SCHEMA_VERSION:
+        _verify_strict_evidence(directory, manifest, report)
     return manifest
+
+
+def _verify_strict_evidence(
+    directory: Path, manifest: EvidenceManifest, report: Report
+) -> None:
+    """Re-run the saved contract to verify artifact/report/gate consistency.
+
+    Checksums provide integrity and reproducibility, not cryptographic authorship
+    or a guarantee that uploaded suite labels were independently reviewed.
+    """
+    if not manifest.source_artifacts or set(manifest.source_artifacts) != {
+        "suite.yaml",
+        "responses.jsonl",
+    }:
+        raise EvidenceVerificationError("Strict source artifacts are missing")
+    for name, digest in manifest.source_artifacts.items():
+        if manifest.files.get(name) != digest:
+            raise EvidenceVerificationError(
+                "Strict source artifact hash is inconsistent"
+            )
+    hashes = report.metadata.get("input_hashes", {})
+    if (
+        hashes.get("suite") != manifest.source_artifacts["suite.yaml"]
+        or hashes.get("responses") != manifest.source_artifacts["responses.jsonl"]
+        or manifest.suite_hash != hashes.get("suite")
+    ):
+        raise EvidenceVerificationError(
+            "Strict input hashes differ from original report"
+        )
+    if manifest.gate != report.metadata.get(
+        "gate"
+    ) or manifest.provenance != report.metadata.get("provenance"):
+        raise EvidenceVerificationError("Strict gate/provenance differs from report")
+    from evalforge.evaluation import evaluate_saved
+
+    strict = report.metadata.get("strict_evidence", True)
+    if not isinstance(strict, bool):
+        raise EvidenceVerificationError("Saved strict_evidence mode must be boolean")
+    try:
+        replay = evaluate_saved(
+            directory / "suite.yaml", directory / "responses.jsonl", strict=strict
+        )
+    except (OSError, ValueError) as exc:
+        raise EvidenceVerificationError(f"Strict input replay failed: {exc}") from exc
+    if reproducibility_hash(replay.report) != manifest.reproducibility_hash:
+        raise EvidenceVerificationError(
+            "Strict replay results differ from original report"
+        )
