@@ -80,6 +80,12 @@ Second-pass audit on the same branch: re-ran every gate, then hardened.
 - **Re-verified:** golden `b707e5b1` unchanged, strict 0/1/0/2, 0.2.0 wheel
   installs/probes outside cwd, 36 units, both builds, 15/15 sample e2e, 7/7
   live real-process e2e.
+- **Published:** [PR #13](https://github.com/FishRaposo/evalforge/pull/13)
+  merged to `main` 2026-10-24 (merge `172aa94`); all eight hosted jobs green,
+  including the outside-checkout wheel probe and the real-process connected
+  browser suite on Linux (`ubuntu-24.04` — Playwright 1.60 lacks `ubuntu26.04`
+  dep support). CI-only fixes: LF `.gitattributes` + re-pinned corpus digests
+  (`2656857`), wheel-path glob before extras (`0d30259`).
 
 ## Limits, authority and next action
 
@@ -96,8 +102,8 @@ outside this milestone. No held-out tuning or fabricated human review occurred.
 Parent overview guard passes; the broad validator cannot decode existing nested
 workspace files. The root copy-all unit harness was not rerun. Scoped navigation
 and stable numbering are checked separately. The root workspace has no Git;
-EvalForge changes are committed locally, with the delivered SHA recorded in the
-parent index/handoff. No push or public release.
+EvalForge changes are committed on `main` after PR #13 merged green, with the
+delivered SHAs recorded in the parent index/handoff.
 
 IDs: EF-01–EF-06 and existing FTH-016; no new opportunity/experiment or commercial
 ledger change. No cash receipt observed; cash status unknown.

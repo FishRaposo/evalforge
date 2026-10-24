@@ -36,7 +36,13 @@ of a pinned `0.1.0` filename. New: brand `icon.svg`, Open Graph/Twitter metadata
 `frontend/README.md`, `CHANGELOG.md`.
 
 Limits unchanged: no native/model/human-validity claims, no Docker/PostgreSQL
-verification, no hosted CI on this branch yet.
+verification. **Hosted status:** [PR #13](https://github.com/FishRaposo/evalforge/pull/13)
+merged 2026-10-24 (merge `172aa94`) after all eight CI jobs passed — lint, unit
+tests, contracts, wheel install outside checkout, mock evaluations, evidence,
+dashboard e2e, and the connected real-process job on Linux. Two CI-only repairs
+were needed and are commits `2656857` (LF-pinned corpus digests + `ubuntu-24.04`
+for Playwright, whose 1.60 deps lack `ubuntu26.04` support) and `0d30259` (wheel
+glob vs `[server]` extras bracket-expression bug).
 
 ## Final checks
 
