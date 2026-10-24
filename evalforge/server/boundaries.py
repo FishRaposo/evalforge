@@ -16,10 +16,14 @@ class LocalMutationBoundary:
         self.allowed_origins = set(allowed_origins)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        path = scope.get("path", "")
         mutation = (
             scope["type"] == "http"
             and scope.get("method") == "POST"
-            and scope.get("path") in {"/api/evaluations", "/api/evaluation-profiles"}
+            and (
+                path in {"/api/evaluations", "/api/evaluation-profiles", "/api/runs"}
+                or path.startswith("/api/baselines/")
+            )
         )
         if not mutation:
             await self.app(scope, receive, send)

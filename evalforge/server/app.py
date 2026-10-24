@@ -9,12 +9,13 @@ from typing import Any
 from uuid import UUID
 
 import yaml
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.datastructures import UploadFile
 
+from evalforge import __version__
 from evalforge.server.boundaries import LocalMutationBoundary
 from evalforge.server.jobs import EvaluationExecutor
 from evalforge.server.locking import database_service_lock
@@ -107,7 +108,7 @@ def create_app(  # noqa: C901
             finally:
                 executor.close()
 
-    app = FastAPI(title="EvalForge API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="EvalForge API", version=__version__, lifespan=lifespan)
     app.state.job_store = jobs
     app.state.profile_manager = profiles
     app.add_middleware(LocalMutationBoundary, allowed_origins=origins)
@@ -208,7 +209,7 @@ def create_app(  # noqa: C901
 
     @app.get("/api/runs")
     def list_runs(
-        suite_name: str | None = None, limit: int = 100
+        suite_name: str | None = None, limit: int = Query(100, ge=1, le=1000)
     ) -> list[dict[str, Any]]:
         """List recent evaluation runs."""
         return [

@@ -60,13 +60,35 @@ review handoff recorded a3600-second timeout). ARIA source and data were not
 modified by this milestone. Stop only the EvalForge processes when finished;
 restart using the documented explicit origins and local paths.
 
+## Audit refresh — 2026-10-23 (v0.2.0)
+
+Second-pass audit on the same branch: re-ran every gate, then hardened.
+
+- **Toolchain:** React 18 → 19.3.1 (Next 16 deprecation resolved), jest-dom 7,
+  `@types/react(-dom)` 19. `npm audit` is now **0 vulnerabilities total** —
+  the 5 dev-chain advisories cleared (zod in-range bump) rather than being
+  force-patched.
+- **API hardening:** `GET /api/runs` `limit` bounded to `1–1000`; the mutation
+  boundary now covers `POST /api/runs` and `POST /api/baselines/*`, closing
+  blind cross-origin browser writes on the legacy routes; `FastAPI` metadata
+  uses `__version__`. Two regression tests added (**358 passed/84.17%**).
+- **Portfolio polish:** brand `icon.svg`, Open Graph/Twitter metadata,
+  `CHANGELOG.md`, `frontend/README.md`, version 0.2.0, CI wheel filename
+  changed to a glob.
+- **Accessibility:** 9 axe WCAG 2.1 A/AA scans (7 routes desktop + 2 mobile)
+  pass with **zero violations** — no contrast repairs were needed.
+- **Re-verified:** golden `b707e5b1` unchanged, strict 0/1/0/2, 0.2.0 wheel
+  installs/probes outside cwd, 36 units, both builds, 15/15 sample e2e, 7/7
+  live real-process e2e.
+
 ## Limits, authority and next action
 
 Sources checked 2026-10-23: current source/tests/diff, actual CLI/SQLite/API/browser
 results, built and installed packages, inspected screenshots, installed Next.js 16.4.2
 docs/exporter source, npm audit and primary GitHub advisories linked in the
-baseline. Runtime npm audit 0;5 high development-tool advisories remain. React 18
-and upstream TestClient deprecations are disclosed. Hosted CI, Python 3.11/Linux,
+baseline. Runtime npm audit 0;dev-chain advisories also cleared in the 0.2.0
+refresh. Upstream TestClient (`httpx`/`httpx2`) deprecations remain disclosed.
+Hosted CI, Python 3.11/Linux,
 formal accessibility, human labels, model/native trials, paid providers,
 publication, hosted multi-user access and arbitrary power loss are unverified or
 outside this milestone. No held-out tuning or fabricated human review occurred.

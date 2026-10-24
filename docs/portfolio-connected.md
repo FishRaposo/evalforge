@@ -69,7 +69,7 @@ One SQLite claim allows one queued/running job. Repeated request IDs for the sam
 
 Profiles and inputs are retained locally until manual cleanup. Stop the API, back up the database if desired, then remove only the dedicated disposable database/upload directory you created. Deleting only uploaded files makes their profiles unavailable; it does not erase historical reports. Reports preserve evaluated answers and source text, so use public-safe or synthetic inputs. There is no automatic retention or confidential-data redaction guarantee for uploaded content.
 
-Bind to 127.0.0.1, configure explicit frontend origins and keep the API local. Origin checks are a local browser boundary, not authentication. No hosted multi-user access, arbitrary crash/power-loss durability, provider validation or production security certification is claimed.
+Bind to 127.0.0.1, configure explicit frontend origins and keep the API local. Origin checks are a local browser boundary applied to **every** mutating route (`POST /api/evaluations`, `/api/evaluation-profiles`, `/api/runs`, `/api/baselines/*`), not authentication. No hosted multi-user access, arbitrary crash/power-loss durability, provider validation or production security certification is claimed.
 
 ## Architecture
 

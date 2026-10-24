@@ -80,7 +80,7 @@ jobs:
       - name: Fresh server wheel outside checkout
         run: |
           python -m venv "$RUNNER_TEMP/evalforge-wheel"
-          "$RUNNER_TEMP/evalforge-wheel/bin/python" -m pip install "./wheelhouse/evalforge-0.1.0-py3-none-any.whl[server]"
+          "$RUNNER_TEMP/evalforge-wheel/bin/python" -m pip install "./wheelhouse/evalforge-"*"-py3-none-any.whl[server]"
           "$RUNNER_TEMP/evalforge-wheel/bin/python" -m pip check
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/evalforge-wheel/bin/python" -I "$GITHUB_WORKSPACE/scripts/verify_installed_portfolio.py"

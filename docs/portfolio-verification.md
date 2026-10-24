@@ -7,6 +7,37 @@ not hosted CI or model-quality claims. See [baseline](portfolio-baseline.md),
 and [handoff](portfolio-handoff.md). The delivered commit is recorded in the
 parent portfolio index and Git history; this record describes its verified tree.
 
+## 2026-10-23 audit refresh (this section supersedes counts below)
+
+Full re-baseline on the same branch plus bounded hardening, versioned **0.2.0**
+(`CHANGELOG.md`). All earlier results in this document remain accurate for the
+milestone commit; the numbers below are the current tree.
+
+| Check | Result |
+| --- | --- |
+| Python suite | **358 passed** (356 + 2 new boundary/pagination regressions), **84.17%** |
+| Ruff check / format | clean / 144 files |
+| Pyright | 0 errors, 0 warnings |
+| Original evidence | golden `b707e5b1…` unchanged at 0.2.0 (version field is outside the hashed report payload) |
+| Strict evidence | four real CLI exits 0/1/0/2, v3 replay, 100-case counts |
+| Wheel | `evalforge-0.2.0` builds, installs outside cwd, `pip check` clean, `verify_installed_portfolio.py` passes |
+| Frontend | **36 units**, lint zero-warning, static + connected builds, **15/15** sample e2e (6 journeys + **9 new axe WCAG 2.1 A/AA scans** — zero violations), **7/7** live real-process e2e |
+| Dependency audit | `npm audit` **0 vulnerabilities** total (prod + dev); pip check clean |
+
+**Audit repairs this round:** React 18 → **19.3.1** (Next.js 16 deprecation
+warning — React 18 support is removed in Next 17), `@types/react(-dom)` 19,
+`@testing-library/jest-dom` 7, in-range `zod` fix clearing the last dev-chain
+advisory. `GET /api/runs` `limit` is bounded (`1–1000`, default 100). The local
+mutation boundary now also covers `POST /api/runs` and `POST /api/baselines/*` —
+cross-origin browser writes were previously reachable on those legacy routes
+because CORS controls response headers, not request rejection. `FastAPI()`
+metadata now reports `__version__`; CI's wheel probe uses a version glob instead
+of a pinned `0.1.0` filename. New: brand `icon.svg`, Open Graph/Twitter metadata,
+`frontend/README.md`, `CHANGELOG.md`.
+
+Limits unchanged: no native/model/human-validity claims, no Docker/PostgreSQL
+verification, no hosted CI on this branch yet.
+
 ## Final checks
 
 | Check | Exact command or method | Observed result |

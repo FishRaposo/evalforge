@@ -588,3 +588,55 @@ def test_api_shutdown_releases_database_handles_without_garbage_collection(tmp_p
     finally:
         if was_enabled:
             gc.enable()
+
+
+def test_runs_list_limit_is_bounded(tmp_path):
+    with TestClient(create_app(str(tmp_path / "bounded.db"))) as client:
+        assert client.get("/api/runs").status_code == 200
+        assert client.get("/api/runs", params={"limit": 1}).status_code == 200
+        assert client.get("/api/runs", params={"limit": 1000}).status_code == 200
+        assert client.get("/api/runs", params={"limit": 0}).status_code == 422
+        assert client.get("/api/runs", params={"limit": -5}).status_code == 422
+        assert client.get("/api/runs", params={"limit": 1001}).status_code == 422
+        assert client.get("/api/runs", params={"limit": 10**9}).status_code == 422
+
+
+def test_origin_boundary_covers_every_mutating_route(tmp_path):
+    with TestClient(
+        create_app(
+            str(tmp_path / "boundary.db"),
+            upload_dir=tmp_path / "uploads",
+            allowed_origins=["http://localhost:3303"],
+        )
+    ) as client:
+        denied = {"Origin": "https://attacker.example"}
+        assert (
+            client.post("/api/runs", json=report(), headers=denied).status_code == 403
+        )
+        assert (
+            client.post(
+                "/api/baselines/fixture",
+                json={"suite_name": "fixture"},
+                headers=denied,
+            ).status_code
+            == 403
+        )
+        # Read-only POST endpoints and allowed origins are unaffected.
+        run_id = client.post("/api/runs", json=report()).json()["id"]
+        assert (
+            client.post(
+                "/api/runs/compare",
+                json={"run_a_id": run_id, "run_b_id": run_id},
+                headers=denied,
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                "/api/baselines/fixture",
+                json={"suite_name": "fixture"},
+                headers={"Origin": "http://localhost:3303"},
+            ).status_code
+            == 200
+        )
+        assert client.get("/api/runs").json()
