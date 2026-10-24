@@ -142,7 +142,8 @@ jobs:
 
   frontend:
     name: Dashboard (tests, build, e2e)
-    runs-on: ubuntu-latest
+    # Playwright system deps lag the ubuntu-latest migration (ubuntu26.04).
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -168,7 +169,8 @@ jobs:
 
   connected:
     name: Real CLI, API and production dashboard
-    runs-on: ubuntu-latest
+    # Playwright system deps lag the ubuntu-latest migration (ubuntu26.04).
+    runs-on: ubuntu-24.04
     needs: unit-tests
     steps:
       - uses: actions/checkout@v7

@@ -1,0 +1,5 @@
+# Hash-pinned and evidence inputs must check out byte-identically on every OS.
+data/** text eol=lf
+example_suites/** text eol=lf
+rule_packs/** text eol=lf
+tests/fixtures/** text eol=lf
