@@ -9,7 +9,7 @@ install: ## Install EvalForge (dev + server + llm extras)
 dev: serve ## Alias for `serve` (start the history API)
 
 test: ## Run the test suite
-	$(PYTHON) -m pytest -q
+	$(PYTHON) -m pytest -q --basetemp=.pytest-temp-make
 
 lint: ## Lint with ruff
 	ruff check evalforge tests scripts
