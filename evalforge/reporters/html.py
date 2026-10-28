@@ -27,14 +27,11 @@ class HtmlReporter(BaseReporter):
         Returns:
             Path to the generated HTML file.
         """
-        output_path.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{report.suite_name.replace(' ', '_').lower()}_{timestamp}.html"
-        file_path = output_path / filename
-
         html = self._build_html(report)
-        file_path.write_text(html, encoding="utf-8")
-        return file_path
+        return self._write_text(
+            output_path, report.suite_name, timestamp, ".html", html
+        )
 
     def _build_html(self, report: Report) -> str:
         """Build the complete HTML report string.

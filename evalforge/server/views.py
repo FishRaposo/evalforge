@@ -6,9 +6,99 @@ import json
 from typing import Any
 
 
+def validate_history_report(report: Any) -> None:
+    """Validate containers the read surface consumes, retaining legacy/extra keys."""
+    if not isinstance(report, dict):
+        raise ValueError("Report must be an object")
+    for field in ("summary", "metadata"):
+        if not isinstance(report.get(field, {}), dict):
+            raise ValueError(f"Report {field} must be an object")
+    _validate_storage_scalars(report)
+    for field in ("pass_rate", "avg_score"):
+        value = report.get("summary", {}).get(field, 0.0)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (float, int))
+            or not 0 <= value <= 1
+        ):
+            raise ValueError(f"Summary {field} must be finite numeric data")
+    metadata = report.get("metadata", {})
+    for field in ("provenance", "gate"):
+        if (
+            field in metadata
+            and metadata[field] is not None
+            and not isinstance(metadata[field], dict)
+        ):
+            raise ValueError(f"Metadata {field} must be an object")
+    results = report.get("results", [])
+    if not isinstance(results, list):
+        raise ValueError("Report results must be a list")
+    for result in results:
+        _validate_history_case(result)
+
+
+def _validate_storage_scalars(report: dict[str, Any]) -> None:
+    if "suite_name" in report and not isinstance(report["suite_name"], str):
+        raise ValueError("Suite name must be text")
+    for container in (report, report.get("metadata", {})):
+        backend = container.get("backend")
+        if backend is not None and not isinstance(backend, str):
+            raise ValueError("Backend must be text or null")
+    summary = report.get("summary", {})
+    for field in ("total", "total_tests", "passed", "failed"):
+        value = summary.get(field, 0)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not 0 <= value <= 2**63 - 1
+        ):
+            raise ValueError(f"Summary {field} must be a nonnegative SQLite integer")
+
+
+def _validate_history_case(result: Any) -> None:
+    if not isinstance(result, dict):
+        raise ValueError("Each result must be an object")
+    if not isinstance(result.get("test_case_id", ""), (str, int)):
+        raise ValueError("Case identity must be scalar text or a legacy integer")
+    for field in ("backend_metadata", "judge_details"):
+        if not isinstance(result.get(field, {}), dict):
+            raise ValueError(f"Result {field} must be an object")
+    evidence = result.get("backend_metadata", {})
+    if not isinstance(evidence.get("provenance", {}), dict):
+        raise ValueError("Evidence provenance must be an object")
+    for field in ("retrieved_sources", "citations", "authoritative_sources"):
+        items = evidence.get(field, [])
+        if not isinstance(items, list) or any(
+            not isinstance(item, dict) for item in items
+        ):
+            raise ValueError(f"Evidence {field} must be a list of objects")
+
+
+def _read_report(row: dict[str, Any]) -> dict[str, Any]:
+    try:
+        report = json.loads(row["report_json"])
+        validate_history_report(report)
+        return report
+    except (ValueError, TypeError):
+        # Preserve the original stored bytes; an unreadable legacy row is not a pass.
+        return {
+            "results": [
+                {
+                    "test_case_id": "unavailable-legacy-report",
+                    "test_case_name": "Stored report cannot be inspected",
+                    "passed": False,
+                    "score": 0,
+                    "outcome": "error",
+                    "error": "Malformed legacy report; "
+                    "original stored JSON is retained",
+                }
+            ]
+        }
+
+
 def run_view(row: dict[str, Any]) -> dict[str, Any]:
     """Preserve every legacy storage key and expose canonical case inspection."""
-    report = json.loads(row["report_json"])
+    report = _read_report(row)
     metadata = report.get("metadata", {})
     cases = []
     for result in report.get("results", []):
@@ -66,8 +156,8 @@ def run_view(row: dict[str, Any]) -> dict[str, Any]:
 def compare_view(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     """Align by stable IDs only when dataset and suite contracts are known equal."""
     left, right = run_view(a), run_view(b)
-    a_summary = json.loads(a["report_json"]).get("summary", {})
-    b_summary = json.loads(b["report_json"]).get("summary", {})
+    a_summary = _read_report(a).get("summary", {})
+    b_summary = _read_report(b).get("summary", {})
     comparable = bool(
         left["dataset_revision"]
         and left["suite_contract"]

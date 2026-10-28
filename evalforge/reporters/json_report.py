@@ -26,14 +26,12 @@ class JsonReporter(BaseReporter):
         Returns:
             Path to the generated JSON file.
         """
-        output_path.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{report.suite_name.replace(' ', '_').lower()}_{timestamp}.json"
-        file_path = output_path / filename
-
         report_data = report.model_dump(mode="json")
-        file_path.write_text(
+        return self._write_text(
+            output_path,
+            report.suite_name,
+            timestamp,
+            ".json",
             Report.model_validate(report_data).model_dump_json(indent=2),
-            encoding="utf-8",
         )
-        return file_path
