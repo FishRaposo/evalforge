@@ -30,8 +30,8 @@ function Comparison() {
             if (!controller.signal.aborted) {
                 setRuns(value.data.runs);
                 setError(value.error);
-                setA(value.data.runs[1]?.id || value.data.runs[0]?.id || "");
-                setB(value.data.runs[0]?.id || "");
+                setA(current => current || value.data.runs[1]?.id || value.data.runs[0]?.id || "");
+                setB(current => current || value.data.runs[0]?.id || "");
             }
         });
         return () => controller.abort();

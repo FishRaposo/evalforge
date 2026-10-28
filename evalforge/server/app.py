@@ -20,7 +20,7 @@ from evalforge.server.boundaries import LocalMutationBoundary
 from evalforge.server.jobs import EvaluationExecutor
 from evalforge.server.locking import database_service_lock
 from evalforge.server.profiles import RESPONSE_LIMIT, SUITE_LIMIT, ProfileManager
-from evalforge.server.views import compare_view, run_view
+from evalforge.server.views import compare_view, run_view, validate_history_report
 from evalforge.shared_core.errors import BaseApplicationError, application_error_handler
 from evalforge.shared_core.logging import RequestLoggingMiddleware
 from evalforge.storage.history import HistoryStore
@@ -227,6 +227,10 @@ def create_app(  # noqa: C901
     @app.post("/api/runs")
     def save_run(body: dict[str, Any]) -> dict[str, int]:
         """Save a new evaluation run."""
+        try:
+            validate_history_report(body)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
         run_id = store.save_run(body)
         return {"id": run_id}
 

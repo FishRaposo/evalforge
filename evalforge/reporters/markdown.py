@@ -26,10 +26,7 @@ class MarkdownReporter(BaseReporter):
         Returns:
             Path to the generated Markdown file.
         """
-        output_path.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{report.suite_name.replace(' ', '_').lower()}_{timestamp}.md"
-        file_path = output_path / filename
 
         lines: list[str] = []
         lines.append(f"# Evaluation Report: {report.suite_name}")
@@ -89,5 +86,6 @@ class MarkdownReporter(BaseReporter):
                 lines.append(f"- **{key}**: {value}")
             lines.append("")
 
-        file_path.write_text("\n".join(lines), encoding="utf-8")
-        return file_path
+        return self._write_text(
+            output_path, report.suite_name, timestamp, ".md", "\n".join(lines)
+        )
