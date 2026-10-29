@@ -1,14 +1,72 @@
 version: 2
 
+# Dependency policy (portfolio task X7): minor and patch updates arrive as one
+# grouped PR per ecosystem; major versions of the framework packages below are
+# never proposed automatically and are migrated by hand.
+
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
     groups:
-      pip-dependencies:
-        patterns:
-          - "*"
+      python-minor-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: pydantic
+        update-types: ["version-update:semver-major"]
+      - dependency-name: pydantic-settings
+        update-types: ["version-update:semver-major"]
+      - dependency-name: fastapi
+        update-types: ["version-update:semver-major"]
+      - dependency-name: sqlalchemy
+        update-types: ["version-update:semver-major"]
+      # anthropic 1.x removed `temperature` from messages.create; capped <1 in pyproject.toml.
+      - dependency-name: anthropic
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: tailwindcss
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tailwindcss/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint-config-next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript-eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@typescript-eslint/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: zod
+        update-types: ["version-update:semver-major"]
+      - dependency-name: express
+        update-types: ["version-update:semver-major"]
+      - dependency-name: ioredis
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

@@ -138,7 +138,9 @@ class AgentRunner(BaseRunner):
 
         if test_case.expected is not None:
             judge = self._judges.get(test_case.type, ExactMatchJudge())
-            judge_result = judge.judge(test_case, final_response)
+            judge_result = judge.judge_with_context(
+                test_case, final_response, backend_metadata
+            )
             passed = judge_result.passed and tools_correct
             score = judge_result.score
             details = {
