@@ -27,14 +27,25 @@ def test_legacy_semantic_fallback_identifies_actual_lexical_method(monkeypatch):
     assert result.details["assessment"]["quality_validated"] is False
 
 
-def test_legacy_citation_checker_is_explicitly_mentions_only():
+def test_legacy_citation_checker_requires_marker_or_fuzzy_opt_in():
     case = TestCase(
         id="a", name="a", type="must_cite", input="hi", expected={"sources": ["NASA"]}
     )
-    result = CitationCheckJudge().judge(case, "NASA says anything I invent.")
-    assert result.passed is True
-    assert result.details.get("assessment", {}).get("method") == "source_mentions_only"
-    assert result.details["assessment"]["quality_validated"] is False
+    strict = CitationCheckJudge().judge(case, "NASA says anything I invent.")
+    # Strict by default: a bare prose mention is not a citation (02f8714).
+    assert strict.passed is False
+    fuzzy_case = TestCase(
+        id="b",
+        name="b",
+        type="must_cite",
+        input="hi",
+        expected={"sources": ["NASA"]},
+        metadata={"match": "fuzzy"},
+    )
+    fuzzy = CitationCheckJudge().judge(fuzzy_case, "NASA says anything I invent.")
+    assert fuzzy.passed is True
+    assert fuzzy.details.get("assessment", {}).get("method") == "source_mentions_only"
+    assert fuzzy.details["assessment"]["quality_validated"] is False
 
 
 def test_legacy_mock_report_serializes_synthetic_origin_and_judge_limit(tmp_path):
