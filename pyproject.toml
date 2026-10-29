@@ -22,7 +22,7 @@ dependencies = [
     "typer>=0.27.3",
     "pyyaml>=6.0.3",
     "pydantic>=2.14.1",
-    "pydantic-settings>=2.16.0",
+    "pydantic-settings>=2.16.1",
     "httpx>=0.28.1",
     "rich>=15.0.0",
     "tenacity>=9.2.1",
@@ -33,24 +33,24 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.17.0",
+    "ruff>=0.17.1",
     "mypy>=2.4.0",
     "pyright>=1.1.414",
 ]
 llm = [
-    "openai>=3.31.0",
+    "openai>=3.36.1",
     "anthropic>=0.121.0,<1",
 ]
 hf = [
     "datasets>=5.1.0",
-    "transformers>=5.19.0",
+    "transformers>=5.20.2",
     "torch>=2.14.1",
 ]
 server = [
-    "fastapi>=0.143.1",
+    "fastapi>=0.159.1",
     "uvicorn>=0.54.0",
     "loguru>=0.7.3",
-    "python-multipart>=0.0.22",
+    "python-multipart>=0.0.32",
 ]
 all = [
     "evalforge[dev,llm,hf,server]",
