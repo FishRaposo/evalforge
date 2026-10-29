@@ -121,11 +121,9 @@ evalforge eval example_suites/rag_basic.yaml --backend openai --format json --ou
 make evidence
 ```
 
-### Original expansion baseline (historical; refreshed2026-10-23)
+### Verified locally (offline, mock backend)
 
-The248-test baseline was reproduced on Python 3.12 before this milestone. Current
-integrated results and limits are in [portfolio verification](docs/portfolio-verification.md).
-The table below preserves the original expansion results; it is not the new total.
+These numbers come from `pip install -e ".[dev,server,llm]"` on Python 3.11+ with no API keys:
 
 | Check | Command | Result |
 |-------|---------|--------|
@@ -136,6 +134,12 @@ The table below preserves the original expansion results; it is not the new tota
 | RAG suite eval | `evalforge eval example_suites/rag_basic.yaml` | **9/10** passed (`fact-003` semantic drift fails by design on mock) |
 | Retrieval A/B | `evalforge retrieval compare` (migration goldens) | hit rate + MRR JSON; exit **0** when no regression |
 | Conversation eval | `evalforge conversation run … --backend mock` | four dimension scores + overall **0.0–1.0** |
+
+### Original expansion baseline (historical; refreshed2026-10-23)
+
+The248-test baseline was reproduced on Python 3.12 before this milestone. Current
+integrated results and limits are in [portfolio verification](docs/portfolio-verification.md).
+The table below preserves the original expansion results; it is not the new total.
 
 ## CLI commands
 
