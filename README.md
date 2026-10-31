@@ -33,8 +33,11 @@ passage integrity, whole-answer expectations and explicit0/1/2 release exits.
 
 ## Quick Demo
 
+Minimum requirements: Python 3.11+ only — no API keys, Docker, database, or `make`.
+
 ```bash
 make demo
+# without make: python examples/run_demo.py
 ```
 
 Runs a sample evaluation suite with mock backend and generates a markdown report.
@@ -119,7 +122,11 @@ evalforge eval example_suites/rag_basic.yaml --backend openai --format json --ou
 
 # Build and verify a credential-free portfolio evidence bundle
 make evidence
+# without make: python scripts/check_portfolio_evidence.py
 ```
+
+The included `docker-compose.yml` (pgvector + Redis) is an optional expansion —
+the CLI, server, and demo all default to SQLite/in-memory and never require it.
 
 ### Verified locally (offline, mock backend)
 
