@@ -4,6 +4,8 @@
 
 **Catch the AI answers that look right and cite the wrong evidence.**
 
+**At a glance.** A release gate that fails when an answer cites the wrong evidence, with pass, fail and indeterminate exits so a run that cannot be judged never passes quietly. See a real run: [fishraposo.github.io/evalforge-report](https://fishraposo.github.io/evalforge-report/). Limits: synthetic, agent-authored fixtures — this demonstrates the harness, not model quality.
+
 EvalForge is a CLI-first evaluator with a connected local dashboard and an offline
 recruiter demo. Inspect the answer, the trusted passage and the exact check behind
 a release decision. The strict gate evaluates bounded source-backed contracts;
