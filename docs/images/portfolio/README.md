@@ -19,3 +19,5 @@ Three 1000×750 cards for the EvalForge gate run of 2026-11-07 22:17:47.
 
 The report crops come from the published page (`fishraposo.github.io/evalforge-report/report.html`),
 captured at 2× and downscaled to 1000×750 with Lanczos.
+
+**Social preview:** `docs/media/social-preview.png` is the 1280×640 GitHub card (a composite of the cover card with the repository name and thesis). Upload it in Settings → Social preview; a repo edit cannot set it.
