@@ -18,7 +18,7 @@ pip install -e ".[dev,server,llm]"
 evalforge eval example_suites/rag_basic.yaml --backend mock
 
 # Portfolio evidence (offline, credential-free, and checksum-verified)
-make evidence
+python scripts/check_portfolio_evidence.py
 
 # OpenAI backend (requires EVALFORGE_OPENAI_API_KEY)
 evalforge eval example_suites/rag_basic.yaml --backend openai
@@ -27,7 +27,7 @@ evalforge eval example_suites/rag_basic.yaml --backend openai
 ## Run Test Suite
 
 ```bash
-make test
+python -m pytest -q
 ```
 
 ## Generate Report

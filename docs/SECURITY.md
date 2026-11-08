@@ -110,7 +110,7 @@ report data; inspect them for prompt or customer information before publication.
 The verifier checks schema-v1/v2 SHA-256 integrity and report consistency; it does
 not provide cryptographic signing or authenticity for an untrusted Git checkout.
 
-The canonical `make evidence` path uses the mock backend, no credentials, and no
+The canonical `python scripts/check_portfolio_evidence.py` path uses the mock backend, no credentials, and no
 network. Keep real-provider evidence opt-in and treat its reports as sensitive
 operational data.
 

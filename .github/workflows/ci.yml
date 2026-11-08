@@ -99,7 +99,7 @@ jobs:
       - name: Import vendored package and scan forbidden dependencies
         run: |
           python -c "import evalforge.config, evalforge.server.app, evalforge.shared_core.config"
-          ! rg -n "\.\./shared-core|git\+https://.*operator-shared-core|^\s*(from|import) shared_core" evalforge Makefile .github docs README.md
+          ! rg -n "\.\./shared-core|git\+https://.*operator-shared-core|^\s*(from|import) shared_core" evalforge .github docs README.md
       - name: Fresh server wheel outside checkout
         run: |
           python -m venv "$RUNNER_TEMP/evalforge-wheel"

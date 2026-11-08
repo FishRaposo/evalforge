@@ -18,7 +18,7 @@ product boundaries that remain deliberate.
   trace, provider, and compatibility metadata.
 - ✅ The mock backend produces a portable evidence bundle with redacted manifest,
   SHA-256 checksums, stable reproducibility hash, and deterministic drift additions,
-  removals, score deltas, and pass/fail transitions (`make evidence`).
+  removals, score deltas, and pass/fail transitions (`python scripts/check_portfolio_evidence.py`).
 
 ## Preserved score-sensitive boundaries
 

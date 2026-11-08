@@ -22,7 +22,7 @@ The repository shortcut runs the same path and compares the normalized result wi
 the committed golden hash:
 
 ```bash
-make evidence
+python scripts/check_portfolio_evidence.py
 ```
 
 For a portfolio walkthrough, inspect `report.json`, `report.md`, `manifest.json`,

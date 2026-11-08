@@ -30,7 +30,7 @@ evalforge/
 ├── examples/run_demo.py          # offline mock-backend evaluation demo
 ├── scripts/check_portfolio_evidence.py  # offline golden evidence CI/portfolio gate
 ├── docker-compose.yml            # OPTIONAL pgvector + redis (CLI/server default to SQLite)
-├── Makefile  ruff.toml  pyrightconfig.json  pyproject.toml  requirements.txt  .env.example
+├── ruff.toml  pyrightconfig.json  pyproject.toml  requirements.txt  .env.example
 └── .github/workflows/ci.yml
 ```
 
@@ -61,15 +61,15 @@ unit tests that lock its `_JSONFormatter`).
 ## Commands
 
 ```bash
-make install      # pip install -e '.[dev,server,llm]'
-make test         # pytest  -> 248 passing at the expansion gate
-make lint         # ruff check evalforge tests scripts
-make format       # ruff format ...
-make typecheck    # pyright evalforge
-make demo         # offline mock-backend evaluation of example_suites/rag_basic.yaml
-make evidence     # build, verify, and compare the canonical offline evidence hash
-make serve        # evalforge serve (history API)
-make eval-basic   # evalforge eval example_suites/rag_basic.yaml
+pip install -e '.[dev,server,llm]'   # install
+python -m pytest -q                   # 248 passing at the expansion gate
+ruff check evalforge tests scripts    # lint
+ruff format evalforge tests scripts   # format
+pyright evalforge                     # typecheck
+python examples/run_demo.py           # offline mock-backend demo
+python scripts/check_portfolio_evidence.py  # canonical evidence hash
+evalforge serve                       # history API
+evalforge eval example_suites/rag_basic.yaml
 evalforge eval <suite.yaml> --backend mock   # the headline CLI
 evalforge evidence verify <directory>         # verify a generated evidence bundle
 evalforge retrieval compare <goldens.jsonl> <corpus.jsonl> --output <report.json>
@@ -114,7 +114,8 @@ SQLite/API processes; do not reuse personal databases or sibling project ports.
 
 Read [latest handoff](docs/portfolio-handoff.md) and
 [fresh verification](docs/portfolio-verification.md) for the actual results and
-limits. `make strict-evidence` and `make test-connected` are additive recipes.
+limits. `python scripts/check_strict_evidence.py` and
+`(cd frontend && npx playwright test --config=playwright.live.config.ts)` are additive checks.
 
 **Functional and self-contained.** Config extends the vendored `BaseAppConfig` with
 the `EVALFORGE_` prefix preserved; the history API uses the vendored middleware and
@@ -142,4 +143,4 @@ remain product deferrals.
 
 - The CLI surface, judges, or backends change
 - The vendored runtime surface changes (config/server)
-- Makefile targets, CI steps, or the docker-compose infra change
+- CI steps, repository commands, or the docker-compose infra change

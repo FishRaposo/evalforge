@@ -19,9 +19,6 @@ cd evalforge
 
 # Install with dev dependencies
 pip install -e ".[dev]"
-
-# Or use the Makefile
-make setup
 ```
 
 This installs EvalForge in editable mode along with `pytest`, `pytest-asyncio`, `ruff`, and `mypy`.
@@ -29,7 +26,7 @@ This installs EvalForge in editable mode along with `pytest`, `pytest-asyncio`, 
 ### Verify Installation
 
 ```bash
-make test
+python -m pytest -q
 ```
 
 All tests should pass. If they don't, open an issue.
@@ -78,10 +75,10 @@ EvalForge uses **ruff** for linting and formatting, and **mypy** in strict mode 
 
 ```bash
 # Lint
-make lint
+ruff check evalforge tests scripts
 
 # Format
-make format
+ruff format evalforge tests scripts
 
 # Type check only
 mypy evalforge
@@ -106,7 +103,7 @@ EvalForge uses **pytest** with **pytest-asyncio** for async tests.
 
 ```bash
 # Full suite with coverage
-make test
+python -m pytest -q
 
 # Specific test file
 python -m pytest tests/test_judges.py -v
@@ -355,7 +352,7 @@ test_cases:
 1. **Fork and branch**: Create a feature branch from `main`.
 2. **Write code**: Follow the style guide above.
 3. **Write tests**: All new code needs test coverage.
-4. **Run checks**: `make lint && make test` must pass.
+4. **Run checks**: `ruff check evalforge tests scripts && python -m pytest -q` must pass.
 5. **Commit**: Use clear, descriptive commit messages.
 6. **Open PR**: Fill out the PR template with motivation and testing details.
 7. **Review**: Address review feedback. CI must pass before merge.
