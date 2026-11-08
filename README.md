@@ -12,6 +12,7 @@ a release decision. The strict gate evaluates bounded source-backed contracts;
 free-form support that it cannot establish stays **indeterminate**.
 
 - [A real run, unedited](https://fishraposo.github.io/evalforge-report/): ten bundled cases against the deterministic mock backend, including the one that fails.
+- [Three captures from that run](docs/images/portfolio/README.md): the summary, the failing case with the metadata it writes, and the command that produced it.
 - [Explore the six-case demo](docs/portfolio-walkthrough.md): baseline → wrong source → repair → judge-error recovery. Persistent sample labels; no API or provider required.
 - [Run the actual application](docs/portfolio-connected.md): import YAML/JSONL, explicitly launch an evaluation, inspect durable reports and compare aligned cases.
 - [Engineering case study](docs/portfolio-case-study.md) · [Verification and screenshots](docs/portfolio-verification.md) · [Agent handoff](docs/portfolio-handoff.md).
