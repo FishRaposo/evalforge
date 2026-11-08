@@ -9,6 +9,7 @@ recruiter demo. Inspect the answer, the trusted passage and the exact check behi
 a release decision. The strict gate evaluates bounded source-backed contracts;
 free-form support that it cannot establish stays **indeterminate**.
 
+- [A real run, unedited](https://fishraposo.github.io/evalforge-report/): ten bundled cases against the deterministic mock backend, including the one that fails.
 - [Explore the six-case demo](docs/portfolio-walkthrough.md): baseline → wrong source → repair → judge-error recovery. Persistent sample labels; no API or provider required.
 - [Run the actual application](docs/portfolio-connected.md): import YAML/JSONL, explicitly launch an evaluation, inspect durable reports and compare aligned cases.
 - [Engineering case study](docs/portfolio-case-study.md) · [Verification and screenshots](docs/portfolio-verification.md) · [Agent handoff](docs/portfolio-handoff.md).
@@ -27,7 +28,7 @@ Legacy citation checking tests mentions; it does not establish factual support.
 Opt into structured saved-response contracts for source identity, version,
 passage integrity, whole-answer expectations and explicit0/1/2 release exits.
 
-[Quick Demo](#quick-demo) • [Architecture](#architecture) • [CLI Guide](#local-quickstart) • [Evidence bundles](docs/EVIDENCE.md)
+[A real gate run](https://fishraposo.github.io/evalforge-report/) • [Quick Demo](#quick-demo) • [Architecture](#architecture) • [CLI Guide](#local-quickstart) • [Evidence bundles](docs/EVIDENCE.md)
 
 ---
 
