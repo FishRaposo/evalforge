@@ -13,9 +13,9 @@ human calibration or sibling dependency is authorized or claimed.
 | Check | Observed result |
 | --- | --- |
 | Isolated Python | Bundled Python 3.12 environment; declared dev/server/llm extras installed |
-| Python suite | 248 passed;81.71% coverage, required80% floor reached |
+| Python suite | 248 passed; 81.71% coverage, required 80% floor reached |
 | Ruff | Check passed;122 files format-clean |
-| Pyright | 0 errors,0 warnings with absolute project interpreter |
+| Pyright | 0 errors, 0 warnings with absolute project interpreter |
 | Original evidence | Verified `b707e5b1e130bba88d7f898178824756403954c57f5679131a3993607b8dd039` |
 | Packaging | Source distribution and wheel built |
 | Frontend | Locked `npm ci`,32 tests in7 files, lint and static build pass |

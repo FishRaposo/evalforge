@@ -7,6 +7,14 @@ not hosted CI or model-quality claims. See [baseline](portfolio-baseline.md),
 and [handoff](portfolio-handoff.md). The delivered commit is recorded in the
 parent portfolio index and Git history; this record describes its verified tree.
 
+## 2026-11-09 audit refresh (this section supersedes counts below)
+
+| Check | Result |
+| --- | --- |
+| Python suite | **446 passed**, ~**85%** line coverage |
+| Ruff / Pyright | clean / 0 errors |
+| Packaging | wheel and sdist build successfully |
+
 ## 2026-10-23 audit refresh (this section supersedes counts below)
 
 Full re-baseline on the same branch plus bounded hardening, versioned **0.2.0**
@@ -22,7 +30,7 @@ milestone commit; the numbers below are the current tree.
 | Strict evidence | four real CLI exits 0/1/0/2, v3 replay, 100-case counts |
 | Wheel | `evalforge-0.2.0` builds, installs outside cwd, `pip check` clean, `verify_installed_portfolio.py` passes |
 | Frontend | **36 units**, lint zero-warning, static + connected builds, **15/15** sample e2e (6 journeys + **9 new axe WCAG 2.1 A/AA scans** — zero violations), **7/7** live real-process e2e |
-| Dependency audit | `npm audit` **0 vulnerabilities** total (prod + dev); pip check clean |
+| Dependency audit | runtime dependency audit clean; `npm audit` still reported 5 high advisories in the development ESLint chain |
 
 **Audit repairs this round:** React 18 → **19.3.1** (Next.js 16 deprecation
 warning — React 18 support is removed in Next 17), `@types/react(-dom)` 19,
@@ -51,18 +59,18 @@ glob vs `[server]` extras bracket-expression bug).
 | Python integration/coverage | `.venv/Scripts/python.exe -m pytest tests/ -q --cov=evalforge --cov-report=term-missing --cov-fail-under=80 -o faulthandler_timeout=60 --basetemp=.pytest-temp/final --junitxml=.tmp/final-python.xml` | **356 passed**, **84.16%**,89.65s; no skips |
 | Ruff | `.venv/Scripts/python.exe -m ruff check evalforge tests scripts` | Clean |
 | Formatting | `.venv/Scripts/python.exe -m ruff format --check evalforge tests scripts` | **144 files** clean |
-| Types | `.venv/Scripts/pyright.exe --pythonpath .venv/Scripts/python.exe evalforge` | **0 errors,0 warnings** |
+| Types | `.venv/Scripts/pyright.exe --pythonpath .venv/Scripts/python.exe evalforge` | **0 errors, 0 warnings** |
 | Original evidence | `python scripts/check_portfolio_evidence.py --output-dir artifacts/original-evidence` | Original golden unchanged: `b707e5b1e130bba88d7f898178824756403954c57f5679131a3993607b8dd039` |
-| Strict evidence | `python scripts/check_strict_evidence.py --output-dir artifacts/strict-evidence` | Four real CLI subprocesses; exits **0/1/0/2**, copied inputs/replay/schema 3 verified,100-case counts reconcile |
+| Strict evidence | `python scripts/check_strict_evidence.py --output-dir artifacts/strict-evidence` | Four real CLI subprocesses; exits **0/1/0/2**, copied inputs/replay/schema 3 verified, 100-case counts reconcile |
 | Source and wheel | `python -m build` | Both build successfully |
-| Fresh installed package | Fresh `.tmp/wheel-venv`, wheel with declared `[server]` dependencies; outside-checkout `python -I scripts/verify_installed_portfolio.py` | Four packaged profiles and actual FastAPI application work; strict0/1/0/2; installed public CLI/v3 replay; shutdown releases DB; `pip check` clean |
-| Frontend units | `npm test` | **36 passed**,10files |
+| Fresh installed package | Fresh `.tmp/wheel-venv`, wheel with declared `[server]` dependencies; outside-checkout `python -I scripts/verify_installed_portfolio.py` | Four packaged profiles and actual FastAPI application work; strict 0/1/0/2; installed public CLI/v3 replay; shutdown releases DB; `pip check` clean |
+| Frontend units | `npm test` | **36 passed**, 10 files |
 | Frontend lint | `npm run lint` | Clean, zero warning budget |
 | Static production build | `npm run build` | Pass; static export preserved, Windows prefetch aliases generated |
 | Connected production build | `npm run build:connected` | Pass; runtime numeric run URLs and refresh verified |
-| Real-process browser | `npx playwright test --config=playwright.live.config.ts --reporter=list` | **7 passed**, about1minute, actual API/CLI/SQLite and production Next processes |
+| Real-process browser | `npx playwright test --config=playwright.live.config.ts --reporter=list` | **7 passed**, about 1 minute, actual API/CLI/SQLite and production Next processes |
 | Static sample browser | `npx playwright test --config=playwright.config.ts --project=chromium --workers=1 --reporter=list` | **6 passed** after a fresh static build; three viewport journeys make **zero backend/provider/external requests** |
-| Bounded independent review | Read-only source review plus focused reproduction/re-review | Three findings repaired; independent **15 checks plus4 final export-error checks passed**, bounded approve verdict |
+| Bounded independent review | Read-only source review plus focused reproduction/re-review | Three findings repaired; independent **15 checks plus 4 final export-error checks passed**, bounded approve verdict |
 
 Local toolchain: isolated Python 3.12 (system Python 3.14), Node 24,
 Next.js 16.4.2, Chromium 148/Playwright 1.60. CI remains configured for Python 3.11
@@ -114,8 +122,8 @@ The frozen corpus is 100 synthetic cases with agent-authored expectations.
 `artifacts/strict-evidence/summary.json` reports agreement, false passes, false
 failures, indeterminate cases and errors by category and development/held-out
 split. The four profiles agree with their authored expectations; measured false
-passes/false failures are0 for this finite fixture. Baseline/repaired100 pass,
-candidate94 pass/6 fail, indeterminate99 pass/1 indeterminate. All candidate faults are
+passes/false failures are 0 for this finite fixture. Baseline/repaired 100 pass,
+candidate 94 pass/6 fail, indeterminate 99 pass/1 indeterminate. All candidate faults are
 development cases; the 80 held-out responses remain unchanged. There is no human
 calibration, independent source-label review, held-out fault-detection estimate,
 population confidence interval or real-model quality conclusion.

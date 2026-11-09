@@ -62,7 +62,7 @@ unit tests that lock its `_JSONFormatter`).
 
 ```bash
 pip install -e '.[dev,server,llm]'   # install
-python -m pytest -q                   # 248 passing at the expansion gate
+python -m pytest -q                   # 446 passing
 ruff check evalforge tests scripts    # lint
 ruff format evalforge tests scripts   # format
 pyright evalforge                     # typecheck
@@ -94,7 +94,7 @@ Project03 adds saved-response evaluation through `evalforge/evaluation.py`,
 `judges/evidence_support.py` contract. CLI `--backend saved --response-file ...
 --strict-evidence` and dashboard jobs use the same service. Schema-v3 evidence
 copies input artifacts and replays the assessment; preserve all v1/v2 golden
-fixtures. `scripts/check_strict_evidence.py` verifies literal0/1/0/2 exits and
+fixtures. `scripts/check_strict_evidence.py` verifies literal 0/1/0/2 exits and
 authored-expectation agreement across the frozen synthetic corpus. Do not call
 this human calibration or measured model quality.
 
