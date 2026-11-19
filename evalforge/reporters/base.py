@@ -5,9 +5,20 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from itertools import count
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 
 from evalforge.models.report import Report
+
+_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    | {f"COM{digit}" for digit in "123456789¹²³"}
+    | {f"LPT{digit}" for digit in "123456789¹²³"}
+)
+
+
+def _is_reserved(filename: str) -> bool:
+    """Windows reserved-name check; replaces PureWindowsPath.is_reserved()."""
+    return filename.split(".")[0].rstrip(" ").upper() in _RESERVED_NAMES
 
 
 class BaseReporter(ABC):
@@ -28,7 +39,7 @@ class BaseReporter(ABC):
         )
         name = name.strip(". ") or "evaluation"
         stem = f"{name}_{timestamp}"
-        if PureWindowsPath(f"{stem}{suffix}").is_reserved():
+        if _is_reserved(f"{stem}{suffix}"):
             stem = f"_{stem}"
         for index in count():
             collision = f"_{index}" if index else ""

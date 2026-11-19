@@ -1,0 +1,23 @@
+{
+ "id": "2026-11-19-python315-is_reserved-removed",
+ "repo": "evalforge",
+ "title": "Reporter filename check calls PureWindowsPath.is_reserved(), removed in Python 3.13; 49 tests fail on 3.15",
+ "kind": "bug",
+ "found_date": "2026-11-19",
+ "found_by": "test",
+ "symptom": "pytest on Python 3.15: 49 failures, all rooted at AttributeError('PureWindowsPath' object has no attribute 'is_reserved') in reporters/base.py. pyproject declares requires-python >=3.11 (unbounded) and README says 'Python 3.11+ only'.",
+ "reproduce": [
+  "python -m venv .venv && .venv/Scripts/python -m pip install -e '.[dev,server,llm]'",
+  ".venv/Scripts/python -m pytest -q  # on Python 3.15"
+ ],
+ "expected": "The suite passes on every Python matching the declared >=3.11 range.",
+ "failing_revision": "aaf4608",
+ "fix_commit": null,
+ "regression_test": "tests/test_report_output_boundaries.py (parametrized portable-filename suite)",
+ "root_cause": "PureWindowsPath.is_reserved() was deprecated and removed in Python 3.13; reporters/base.py calls it directly. CI pins 3.11 so the break was invisible.",
+ "status": "open",
+ "bench_candidate": "yes",
+ "bench_note": "Bounded fix: replace the call with an inline reserved-name check.",
+ "publishable": true,
+ "notes": ""
+}
